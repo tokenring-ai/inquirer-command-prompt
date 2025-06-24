@@ -1,84 +1,40 @@
 import chalk from 'chalk'
-import fs from 'fs-extra'
-import path from 'path'
+import fs from 'fs-extra' // Still needed for other parts if any, or DefaultHistory if it's in the same file
+import path from 'path' // Still needed for other parts if any, or DefaultHistory
 import _ from 'lodash'
 import InputPrompt from 'inquirer/lib/prompts/input.js'
+import DefaultHistory from './DefaultHistory.js' // Import the new history handler
 
-let histories = {}
-let historyIndexes = {}
+// Remove old global history variables
+// let histories = {}
+// let historyIndexes = {}
+// let historyFile
+
 const autoCompleters = {}
+let context // This seems to be instance-specific, should be `this.context`
 
-let historyFile
-let context
-
-let globalConfig
+let globalConfig // This will be used to configure the history handler
 const ELLIPSIS = '…'
 let rl
 
 class CommandPrompt extends InputPrompt {
-
- static initHistory(context) {
-  if (!historyFile && globalConfig && globalConfig.history && globalConfig.history.save) {
-   const historyFolder = globalConfig.history.folder
-   fs.ensureDirSync(historyFolder)
-   historyFile = path.join(historyFolder, 'inquirer-command-prompt-history.json')
-   if (fs.existsSync(historyFile)) {
-    const previousHistories = JSON.parse(fs.readFileSync(historyFile))
-    CommandPrompt.setHistoryFromPreviousSavedHistories(previousHistories)
-   }
+  constructor(...args) {
+    super(...args)
+    // Initialize history handler for this prompt instance
+    // The actual configuration will be passed via setConfig or when options are processed.
+    this.historyHandler = new DefaultHistory(globalConfig ? globalConfig.history : {});
+    this.context = this.opt.context || '_default'; // Each prompt instance can have its own context
+    this.historyHandler.init(this.context);
   }
-  if (!histories[context]) {
-   histories[context] = []
-   historyIndexes[context] = 0
-  }
- }
 
- static setHistoryFromPreviousSavedHistories(previousHistory) {
-  try {
-   histories = previousHistory.histories
-   for (let c in histories) {
-    historyIndexes[c] = histories[c].length
-   }
-  } catch (e) {
-   console.error('inquirer-command-promt ERROR: Invalid history file.')
-  }
- }
+  // Remove old static history methods
+  // static initHistory(context) { ... }
+  // static setHistoryFromPreviousSavedHistories(previousHistory) { ... }
+  // static addToHistory(context, value) { ... }
+  // static getLimitedHistories() { ... }
 
- static addToHistory(context, value) {
-  thiz.initHistory(context)
-  if (histories[context][histories[context].length - 1] !== value) {
-   if (globalConfig && globalConfig.history && (globalConfig.history.blacklist || []).includes(value)) {
-    return
-   }
-   histories[context].push(value)
-   historyIndexes[context]++
-   if (historyFile) {
-    const savedHistory = CommandPrompt.getLimitedHistories(histories)
-    fs.writeFileSync(historyFile,
-     JSON.stringify({
-      histories: savedHistory
-     }, null, 2)
-    )
-   }
-  }
- }
-
- static getLimitedHistories() {
-  const limitedHistories = _.clone(histories)
-  const limit = globalConfig.history.limit
-  if (limit) {
-   for (let c in limitedHistories) {
-    const len = limitedHistories[c].length
-    if (len > limit) {
-     limitedHistories[c] = limitedHistories[c].slice(len - limit)
-    }
-   }
-  }
-  return limitedHistories
- }
-
- static formatIndex(i) {
-  let len = globalConfig.history.limit.toString().length
+  static formatIndex(i, limit = 100) { // Pass limit or get from historyHandler's config
+    let len = (limit || 100).toString().length;
   return ' '.repeat(len - `${i}`.length) + i
  }
 
