@@ -2,6 +2,27 @@
   "histories": {
     "_default": [
       ""
+    ],
+    "autocomplete_test_1": [
+      "",
+      "f"
+    ],
+    "autocomplete_test_2": [
+      "",
+      "hello"
+    ],
+    "autocomplete_test_3": [
+      "",
+      "zu"
+    ],
+    "hist_nav_test": [
+      ""
+    ],
+    "hist_add_save_test": [
+      ""
+    ],
+    "hist_display_test": [
+      ""
     ]
   }
 }

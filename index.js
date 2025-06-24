@@ -11,16 +11,41 @@ const autoCompleters = {};
 
 let globalConfig // This will be used to configure the history handler
 const ELLIPSIS = '…'
-let rl
+// let rl; // Remove global rl variable
 
 class CommandPrompt extends InputPrompt {
   constructor(...args) {
-    super(...args)
-    // Initialize history handler for this prompt instance
-    // The actual configuration will be passed via setConfig or when options are processed.
-    this.historyHandler = new DefaultHistory(globalConfig ? globalConfig.history : {});
-    this.context = this.opt.context || '_default'; // Each prompt instance can have its own context
-    this.historyHandler.init(this.context);
+    super(...args);
+
+    const historyOptions = this.opt.history || {};
+    const globalHistoryConfig = (globalConfig && globalConfig.history) || {};
+
+    // Check for a user-provided custom history handler that meets the interface
+    const hasRequiredHistoryMethods = this.opt.historyHandler &&
+      typeof this.opt.historyHandler.init === 'function' &&
+      typeof this.opt.historyHandler.add === 'function' &&
+      typeof this.opt.historyHandler.getPrevious === 'function' &&
+      typeof this.opt.historyHandler.getNext === 'function' &&
+      typeof this.opt.historyHandler.getAll === 'function' &&
+      typeof this.opt.historyHandler.resetIndex === 'function';
+
+    if (hasRequiredHistoryMethods) {
+      this.historyHandler = this.opt.historyHandler;
+      // Configure the custom handler if it supports setConfig
+      if (typeof this.historyHandler.setConfig === 'function') {
+        // Merge global history config with prompt-specific history config
+        const finalHistoryConfig = { ...globalHistoryConfig, ...historyOptions };
+        this.historyHandler.setConfig(finalHistoryConfig);
+      }
+    } else {
+      // Initialize default history handler if no valid custom one is provided
+      // Merge global history config with prompt-specific history config
+      const defaultHistoryConfig = { ...globalHistoryConfig, ...historyOptions };
+      this.historyHandler = new DefaultHistory(defaultHistoryConfig);
+    }
+
+    this.context = this.opt.context || '_default';
+    this.historyHandler.init(this.context); // Initialize for the current context
   }
 
   // Static utility methods previously part of CommandPrompt history logic,
@@ -140,6 +165,7 @@ class CommandPrompt extends InputPrompt {
     line = this.opt.onBeforeRewrite(line)
    }
    this.rl.line = line
+   console.log(`[DEBUG CommandPrompt.rewrite] this.rl.line set to: "${this.rl.line}"`); // DEBUG
    this.rl.write(null, {ctrl: true, name: 'e'})
   }
 
@@ -156,14 +182,15 @@ class CommandPrompt extends InputPrompt {
       const previousCommand = this.historyHandler.getPrevious(this.context);
       if (previousCommand !== undefined) {
         rewrite(previousCommand);
+        this.rl.line = previousCommand; // Explicitly re-set after render, for test stability
       }
     }
     /** go down commands history */
     else if (e.key.name === 'down') {
       const nextCommand = this.historyHandler.getNext(this.context);
-      // nextCommand being undefined means user is at the newest entry or history is empty.
-      // In this case, rewrite with an empty string for a new command line.
-      rewrite(nextCommand !== undefined ? nextCommand : '');
+      const lineValue = nextCommand !== undefined ? nextCommand : '';
+      rewrite(lineValue);
+      this.rl.line = lineValue; // Explicitly re-set after render
     }
     /** search for command at an autoComplete option */
     else if (e.key.name === 'tab') {
@@ -181,7 +208,9 @@ class CommandPrompt extends InputPrompt {
           rewrite(ac.match);
         } else if (ac.matches) {
           console.log(); // Newline before list
-          process.stdout.cursorTo(0); // Move cursor to beginning of line
+          if (typeof process.stdout.cursorTo === 'function') {
+            process.stdout.cursorTo(0); // Move cursor to beginning of line
+          }
           console.log(this.opt.autocompletePrompt || chalk.red('>> ') + chalk.grey('Available commands:'));
           console.log(CommandPrompt.formatList( // Use CommandPrompt for static method
             this.opt.short
@@ -245,6 +274,7 @@ class CommandPrompt extends InputPrompt {
       }
     }
     this.render();
+    console.log(`[DEBUG CommandPrompt.onKeypress END] this.rl.line: "${this.rl.line}"`); // DEBUG
   }
 
   async asyncAutoCompleter(line, cmds) {
@@ -318,7 +348,8 @@ class CommandPrompt extends InputPrompt {
   }
 
   render(error) {
-  rl = this.rl
+    console.log(`[DEBUG CommandPrompt.render START] this.rl.line: "${this.rl.line}"`); // DEBUG
+  // rl = this.rl; // Removed assignment to global `rl`. `this.rl` is used directly below.
   let bottomContent = ''
   let appendContent = ''
   let message = this.getQuestion()
@@ -348,6 +379,5 @@ class CommandPrompt extends InputPrompt {
 
 }
 
-let thiz = CommandPrompt
 
 export default CommandPrompt
