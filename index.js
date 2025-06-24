@@ -1,17 +1,13 @@
-import chalk from 'chalk'
-import fs from 'fs-extra' // Still needed for other parts if any, or DefaultHistory if it's in the same file
-import path from 'path' // Still needed for other parts if any, or DefaultHistory
-import _ from 'lodash'
-import InputPrompt from 'inquirer/lib/prompts/input.js'
-import DefaultHistory from './DefaultHistory.js' // Import the new history handler
+import chalk from 'chalk';
+// fs and path are not directly used in CommandPrompt anymore; DefaultHistory handles its own imports.
+// import fs from 'fs-extra';
+// import path from 'path';
+import _ from 'lodash';
+import InputPrompt from 'inquirer/lib/prompts/input.js';
+import DefaultHistory from './DefaultHistory.js';
 
-// Remove old global history variables
-// let histories = {}
-// let historyIndexes = {}
-// let historyFile
-
-const autoCompleters = {}
-let context // This seems to be instance-specific, should be `this.context`
+// autoCompleters will store autocompletion functions keyed by context.
+const autoCompleters = {};
 
 let globalConfig // This will be used to configure the history handler
 const ELLIPSIS = '…'
@@ -27,13 +23,10 @@ class CommandPrompt extends InputPrompt {
     this.historyHandler.init(this.context);
   }
 
-  // Remove old static history methods
-  // static initHistory(context) { ... }
-  // static setHistoryFromPreviousSavedHistories(previousHistory) { ... }
-  // static addToHistory(context, value) { ... }
-  // static getLimitedHistories() { ... }
+  // Static utility methods previously part of CommandPrompt history logic,
+  // now either removed or kept if generally useful.
 
-  static formatIndex(i, limit = 100) { // Pass limit or get from historyHandler's config
+  static formatIndex(i, limit = 100) {
     let len = (limit || 100).toString().length;
   return ' '.repeat(len - `${i}`.length) + i
  }
@@ -62,7 +55,7 @@ class CommandPrompt extends InputPrompt {
  }
 
  static isAsyncFunc(func) {
-  return thiz.isFunc(func) && func.constructor.name === 'AsyncFunction'
+  return CommandPrompt.isFunc(func) && func.constructor.name === 'AsyncFunction';
  }
 
  static formatList(elems, maxSize = 32, ellipsized, ellipsis) {
@@ -81,7 +74,7 @@ class CommandPrompt extends InputPrompt {
   let str = ''
   let c = 1
   for (let elem of elems) {
-   str += thiz.setSpaces(elem, max, ellipsized, ellipsis)
+    str += CommandPrompt.setSpaces(elem, max, ellipsized, ellipsis);
    if (c === columns) {
     str += ' '.repeat(cols - max * columns)
     c = 1
@@ -94,14 +87,14 @@ class CommandPrompt extends InputPrompt {
 
  static setSpaces(str, len, ellipsized, ellipsis) {
   if (ellipsized && str.length > len - 1) {
-   str = thiz.ellipsize(str, len - 1, ellipsis)
+      str = CommandPrompt.ellipsize(str, len - 1, ellipsis);
   }
-  return str + ' '.repeat(len - thiz.decolorize(str).length)
+  return str + ' '.repeat(len - CommandPrompt.decolorize(str).length);
  }
 
  static ellipsize(str, len, ellipsis = ELLIPSIS) {
   if (str.length > len) {
-   let l = thiz.decolorize(ellipsis).length + 1
+      let l = CommandPrompt.decolorize(ellipsis).length + 1;
    return str.substring(0, len - l) + ellipsis
   }
  }
@@ -117,28 +110,19 @@ class CommandPrompt extends InputPrompt {
  }
 
  static getRl() {
-  return rl
+  return rl;
  }
 
- static getHistory(context) {
-  if (!context) {
-   context = '_default'
-  }
-  return histories[`${context}`]
- }
+ // Remove unused static getHistory and getHistories methods as they relied on old global state
+ // static getHistory(context) { ... }
+ // static getHistories(useLimit) { ... }
 
- static getHistories(useLimit) {
-  return {
-   histories: useLimit ? CommandPrompt.getLimitedHistories() : histories
-  }
- }
-
- async initAutoCompletion(context, autoCompletion) {
+ async initAutoCompletion(context, autoCompletion) { // context param is fine, it's this.context passed from onKeypress
   if (!autoCompleters[context]) {
-   if (thiz.isAsyncFunc(autoCompletion)) {
-    autoCompleters[context] = async l => this.asyncAutoCompleter(l, autoCompletion)
-   } else if (autoCompletion) {
-    autoCompleters[context] = l => this.autoCompleter(l, autoCompletion)
+      if (CommandPrompt.isAsyncFunc(autoCompletion)) { // Use CommandPrompt for static check
+        autoCompleters[context] = async l => this.asyncAutoCompleter(l, autoCompletion);
+      } else if (autoCompletion) {
+        autoCompleters[context] = l => this.autoCompleter(l, autoCompletion);
    } else {
     autoCompleters[context] = () => []
    }
@@ -159,95 +143,111 @@ class CommandPrompt extends InputPrompt {
    this.rl.write(null, {ctrl: true, name: 'e'})
   }
 
-  context = this.opt.context ? this.opt.context : '_default'
+    // this.context is initialized in the constructor.
+    // Ensure history is initialized for the context (also done in constructor, but harmless here).
+    this.historyHandler.init(this.context);
 
-  thiz.initHistory(context)
-  await this.initAutoCompletion(context, this.opt.autoCompletion)
-  /** go up commands history */
-  if (e.key.name === 'up') {
-   if (historyIndexes[context] > 0) {
-    historyIndexes[context]--
-    rewrite(histories[context][historyIndexes[context]])
-   }
-  }
-  /** go down commands history */
-  else if (e.key.name === 'down') {
-   if (historyIndexes[context] < histories[context].length - 1) {
-    historyIndexes[context]++
-    rewrite(histories[context][historyIndexes[context]])
-   } else if (historyIndexes[context] === histories[context].length - 1) {
-    // Move to the "current/empty" position beyond the last history item
-    historyIndexes[context] = histories[context].length
-    rewrite('')
-   }
-  }
-  /** search for command at an autoComplete option
-   * which can be an array or a function which returns an array
-   * */
-  if (e.key.name === 'tab') {
-   let line = this.rl.line.replace(/^ +/, '').replace(/\t/, '').replace(/ +/g, ' ')
-   try {
-    var ac
-    if (thiz.isAsyncFunc(this.opt.autoCompletion)) {
-     ac = await autoCompleters[context](line)
-    } else {
-     ac = autoCompleters[context](line)
-    }
-    if (ac.match) {
-     rewrite(ac.match)
-    } else if (ac.matches) {
-     console.log()
-     process.stdout.cursorTo(0)
-     console.log(this.opt.autocompletePrompt || chalk.red('>> ') + chalk.grey('Available commands:'))
-     console.log(thiz.formatList(
-      this.opt.short
-       ? (
-        typeof this.opt.short === 'function'
-         ? this.opt.short(line, ac.matches)
-         : thiz.short(line, ac.matches)
-       )
-       : ac.matches,
-      this.opt.maxSize,
-      this.opt.ellipsize,
-      this.opt.ellipsis
-     ))
-     rewrite(line)
-    }
-   } catch (err) {
-    console.error(err)
+    // Ensure autocompleter is initialized for the current context.
+    // Pass this.context, which is correctly set.
+    await this.initAutoCompletion(this.context, this.opt.autoCompletion);
 
-    rewrite(line)
-   }
-  } else if (e.key.name === 'right' && e.key.shift) {
-   if (e.key.ctrl) {
-    let i = parseInt(this.rl.line)
-    if (!isNaN(i)) {
-     let history = histories[context]
-     rewrite(history[i])
-    } else {
-     rewrite('')
+    /** go up commands history */
+    if (e.key.name === 'up') {
+      const previousCommand = this.historyHandler.getPrevious(this.context);
+      if (previousCommand !== undefined) {
+        rewrite(previousCommand);
+      }
     }
-   } else {
-    // shows the history
-    let history = histories[context]
-    console.log(chalk.bold('History'))
-    for (let i = 0; i < history.length; i++) {
-     console.log(`${chalk.grey(thiz.formatIndex(i))}  ${history[i]}`)
+    /** go down commands history */
+    else if (e.key.name === 'down') {
+      const nextCommand = this.historyHandler.getNext(this.context);
+      // nextCommand being undefined means user is at the newest entry or history is empty.
+      // In this case, rewrite with an empty string for a new command line.
+      rewrite(nextCommand !== undefined ? nextCommand : '');
     }
-    rewrite('')
-   }
-  } else if (e.key.name === 'end' && e.key.ctrl) {
-   // execute onCtrlEnd if defined
-   if (globalConfig && typeof globalConfig.onCtrlEnd === 'function') {
-    rewrite(globalConfig.onCtrlEnd(this.rl.line))
-   } else {
-    rewrite('')
-   }
-  }
-  this.render()
- }
+    /** search for command at an autoComplete option */
+    else if (e.key.name === 'tab') {
+      let line = this.rl.line.replace(/^ +/, '').replace(/\t/, '').replace(/ +/g, ' ');
+      try {
+        var ac; // auto-completion result
+        // Use this.context for autoCompleters object
+        if (CommandPrompt.isAsyncFunc(this.opt.autoCompletion)) {
+          ac = await autoCompleters[this.context](line);
+        } else {
+          ac = autoCompleters[this.context](line);
+        }
 
- async asyncAutoCompleter(line, cmds) {
+        if (ac.match) {
+          rewrite(ac.match);
+        } else if (ac.matches) {
+          console.log(); // Newline before list
+          process.stdout.cursorTo(0); // Move cursor to beginning of line
+          console.log(this.opt.autocompletePrompt || chalk.red('>> ') + chalk.grey('Available commands:'));
+          console.log(CommandPrompt.formatList( // Use CommandPrompt for static method
+            this.opt.short
+              ? (
+                typeof this.opt.short === 'function'
+                  ? this.opt.short(line, ac.matches) // User-provided shortener
+                  : CommandPrompt.short(line, ac.matches) // Default shortener
+              )
+              : ac.matches,
+            this.opt.maxSize,
+            this.opt.ellipsize,
+            this.opt.ellipsis
+          ));
+          rewrite(line); // Rewrite the original line after displaying suggestions
+        }
+      } catch (err) {
+        console.error('Error during tab completion:', err);
+        rewrite(line); // Rewrite the original line on error
+      }
+    }
+    /** Display history or recall specific history entry */
+    else if (e.key.name === 'right' && e.key.shift) {
+      if (e.key.ctrl) {
+        // History recall by number if current line is a number
+        const lineAsIndex = parseInt(this.rl.line, 10);
+        if (!isNaN(lineAsIndex)) {
+          const historyEntries = this.historyHandler.getAll(this.context);
+          if (lineAsIndex >= 0 && lineAsIndex < historyEntries.length) {
+            rewrite(historyEntries[lineAsIndex]);
+          } else {
+            rewrite(''); // Index out of bounds or invalid
+          }
+        } else {
+          rewrite(''); // Current line is not a number
+        }
+      } else {
+        // Display all history entries
+        const historyEntries = this.historyHandler.getAll(this.context);
+        const historyConfig = this.historyHandler.config || {};
+        const historyLimit = historyConfig.limit !== undefined ? historyConfig.limit : 100;
+
+        console.log(); // Newline before history list
+        console.log(chalk.bold('History:'));
+        if (historyEntries.length === 0) {
+          console.log(chalk.grey('  (No history)'));
+        } else {
+          for (let i = 0; i < historyEntries.length; i++) {
+            // Use CommandPrompt.formatIndex for consistent formatting.
+            console.log(`${chalk.grey(CommandPrompt.formatIndex(i, historyLimit))}  ${historyEntries[i]}`);
+          }
+        }
+        rewrite(''); // Clear the current line after displaying history
+      }
+    }
+    /** Execute onCtrlEnd if defined */
+    else if (e.key.name === 'end' && e.key.ctrl) {
+      if (globalConfig && typeof globalConfig.onCtrlEnd === 'function') {
+        rewrite(globalConfig.onCtrlEnd(this.rl.line));
+      } else {
+        rewrite('');
+      }
+    }
+    this.render();
+  }
+
+  async asyncAutoCompleter(line, cmds) {
   cmds = await cmds(line)
   return this.autoCompleterFormatter(line, cmds)
  }
@@ -306,17 +306,18 @@ class CommandPrompt extends InputPrompt {
   }
  }
 
- run() {
-  return new Promise(function (resolve) {
-   this._run(function (value) {
-    thiz.addToHistory(context, value)
-    historyIndexes[context] = histories[context].length
-    resolve(value)
-   })
-  }.bind(this))
- }
+  run() {
+    return new Promise( (resolve) => { // Using arrow function to preserve `this`
+      this._run( (value) => { // Using arrow function to preserve `this`
+        // Use this.historyHandler to add command, with this.context
+        this.historyHandler.add(this.context, value);
+        // No need to manage historyIndexes here, DefaultHistory's add() handles it.
+        resolve(value);
+      });
+    }); // No need for .bind(this) if using arrow functions
+  }
 
- render(error) {
+  render(error) {
   rl = this.rl
   let bottomContent = ''
   let appendContent = ''
