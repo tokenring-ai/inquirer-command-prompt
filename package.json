@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "license": "MIT",
   "scripts": {
-    "lint": "eslint -c .eslintrc 'src/*.js' 'test/*.js'",
-    "build": "babel ./src/index.js --out-file ./build/index.js",
+    "lint": "eslint -c .eslintrc '*.js' 'test/*.js'",
     "test": "mocha test"
   },
+  "type": "module",
   "description": "A command prompt with history and autocomplete.",
   "main": "index.js",
   "repository": {
@@ -33,5 +33,6 @@
     "eslint": "^6.8.0",
     "mocha": "^10.2.0",
     "sinon": "^7.5.0"
-  }
+  },
+  "packageManager": "npm@11.4.2+sha512.f90c1ec8b207b625d6edb6693aef23dacb39c38e4217fe8c46a973f119cab392ac0de23fe3f07e583188dae9fd9108b3845ad6f525b598742bd060ebad60bff3"
 }
