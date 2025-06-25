@@ -1,9 +1,9 @@
-import { EventEmitter } from 'events'
-import sinon from 'sinon'
-import util from 'util'
-import _ from 'lodash'
+import { EventEmitter } from 'events';
+import sinon from 'sinon';
+import util from 'util';
+import _ from 'lodash';
 
-const stub = {}
+const stub = {};
 
 _.assign(stub, {
  write: sinon.stub().returns(stub),
@@ -22,18 +22,18 @@ _.assign(stub, {
   unmute: sinon.stub(),
   __raw__: '',
   write: function(str) {
-   this.__raw__ += str
+   this.__raw__ += str;
   }
  }
-})
+});
 
 const ReadlineStub = function() {
- this.line = ''
- this.input = new EventEmitter()
- EventEmitter.apply(this, arguments)
-}
+ this.line = '';
+ this.input = new EventEmitter();
+ EventEmitter.apply(this, arguments);
+};
 
-util.inherits(ReadlineStub, EventEmitter)
-_.assign(ReadlineStub.prototype, stub)
+util.inherits(ReadlineStub, EventEmitter);
+_.assign(ReadlineStub.prototype, stub);
 
-export default ReadlineStub
+export default ReadlineStub;

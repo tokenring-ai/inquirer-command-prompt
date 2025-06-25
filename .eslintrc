@@ -3,14 +3,12 @@
     "env": {
         // in CommonJS
         "node": true,
-        // browser
-        "browser": true,
         // mocha
         "mocha": true
     },
     "globals": {},
     "rules": {
-        "semi": [ 2, "never" ],
+        "semi": [ 2, "always" ],
         "quotes": [ 2, "single", "avoid-escape" ],
         "no-unused-vars": [ 2, {"vars": "all", "args": "none"} ],
         "eqeqeq": [ 2, "smart" ],

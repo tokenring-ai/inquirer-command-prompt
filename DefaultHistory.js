@@ -1,13 +1,34 @@
 import fs from 'fs-extra';
-import path from 'path';
+import path from 'node:path';
 import _ from 'lodash';
 
+/** @type {string} Default filename for history storage */
 const DEFAULT_HISTORY_FILE_NAME = 'inquirer-command-prompt-history.json';
 
+/**
+ * Default history handler implementation
+ * Manages command history for different contexts with persistence to file
+ */
 class DefaultHistory {
+  /**
+   * Create a new DefaultHistory instance
+   * @param {Object} [config={}] - Configuration options
+   * @param {boolean} [config.save=true] - Whether to save history to a file
+   * @param {string} [config.folder='.'] - Folder to save history file
+   * @param {number} [config.limit=100] - Maximum number of history entries per context
+   * @param {string[]} [config.blacklist=[]] - Commands to exclude from history
+   * @param {string} [config.fileName='inquirer-command-prompt-history.json'] - Name of the history file
+   */
   constructor(config = {}) {
-    this.histories = {}; // Maps context to array of commands
-    this.historyIndexes = {}; // Maps context to current index in its history array
+    /** @type {Object.<string, string[]>} Maps context to array of commands */
+    this.histories = {};
+
+    /** @type {Object.<string, number>} Maps context to current index in its history array */
+    this.historyIndexes = {};
+
+    /**
+     * @type {Object} Configuration options
+     */
     this.config = {
       save: true,
       folder: '.',
@@ -16,6 +37,8 @@ class DefaultHistory {
       fileName: DEFAULT_HISTORY_FILE_NAME,
       ...config, // User-provided config overrides defaults
     };
+
+    /** @type {string|null} Full path to history file */
     this._historyFile = null;
 
     if (this.config.save) {
@@ -24,6 +47,10 @@ class DefaultHistory {
     }
   }
 
+  /**
+   * Update configuration settings
+   * @param {Object} config - New configuration options
+   */
   setConfig(config) {
     if (typeof config === 'object') {
       this.config = { ...this.config, ...config };
@@ -34,12 +61,30 @@ class DefaultHistory {
     }
   }
 
+  /**
+   * Ensure the history file directory exists
+   * @returns {boolean} True if directory exists or was created, false otherwise
+   * @private
+   */
   _ensureHistoryFile() {
     if (this.config.save && this._historyFile) {
-      fs.ensureDirSync(path.dirname(this._historyFile));
+      try {
+        fs.ensureDirSync(path.dirname(this._historyFile));
+        return true;
+      } catch (e) {
+        console.error('DefaultHistory ERROR: Could not create history directory.', e);
+        // Optionally disable saving for this session if directory cannot be created
+        // this.config.save = false;
+        return false;
+      }
     }
+    return true; // Or false if save is not enabled, depending on desired semantics
   }
 
+  /**
+   * Initialize history for a context
+   * @param {string} context - The context to initialize
+   */
   init(context) {
     if (!this.histories[context]) {
       this.histories[context] = [];
@@ -47,6 +92,11 @@ class DefaultHistory {
     }
   }
 
+  /**
+   * Add a command to history
+   * @param {string} context - The context to add to
+   * @param {string} value - The command to add
+   */
   add(context, value) {
     this.init(context); // Ensure context is initialized
 
@@ -70,6 +120,11 @@ class DefaultHistory {
     }
   }
 
+  /**
+   * Get the previous command in history
+   * @param {string} context - The context to get from
+   * @returns {string|undefined} The previous command or undefined if at beginning
+   */
   getPrevious(context) {
     this.init(context); // Ensure context is initialized
     if (this.historyIndexes[context] > 0) {
@@ -79,6 +134,11 @@ class DefaultHistory {
     return undefined; // At the beginning or no history
   }
 
+  /**
+   * Get the next command in history
+   * @param {string} context - The context to get from
+   * @returns {string|undefined} The next command or undefined if at end
+   */
   getNext(context) {
     this.init(context); // Ensure context is initialized
     if (this.historyIndexes[context] < this.histories[context].length - 1) {
@@ -92,16 +152,22 @@ class DefaultHistory {
     return undefined; // Already at the "new input" line or no history
   }
 
-  resetIndex(context) {
-    this.init(context);
-    this.historyIndexes[context] = this.histories[context].length;
-  }
 
+  /**
+   * Get all commands in history for a context
+   * @param {string} context - The context to get from
+   * @returns {string[]} Array of all commands in history
+   */
   getAll(context) {
     this.init(context);
     return [...this.histories[context]]; // Return a copy
   }
 
+  /**
+   * Get a copy of histories with entries limited to config.limit
+   * @returns {Object.<string, string[]>} Limited histories
+   * @private
+   */
   _getLimitedHistories() {
     const limitedHistories = _.cloneDeep(this.histories); // Use cloneDeep for nested arrays
     const limit = this.config.limit;
@@ -116,11 +182,21 @@ class DefaultHistory {
     return limitedHistories;
   }
 
+  /**
+   * Save history to file
+   */
   save() {
     if (!this.config.save || !this._historyFile) {
       return;
     }
-    this._ensureHistoryFile();
+    // _ensureHistoryFile now returns false if it fails, and logs the error.
+    if (!this._ensureHistoryFile()) {
+      // If directory creation failed, optionally disable future save attempts for this session
+      // or simply return to prevent trying to write.
+      // console.error('DefaultHistory: Skipping save due to directory issue.');
+      // this.config.save = false; // Example: disable future saves
+      return;
+    }
     const historiesToSave = this._getLimitedHistories();
     try {
       fs.writeFileSync(
@@ -132,6 +208,9 @@ class DefaultHistory {
     }
   }
 
+  /**
+   * Load history from file
+   */
   load() {
     if (!this.config.save || !this._historyFile || !fs.existsSync(this._historyFile)) {
       return;
@@ -148,12 +227,21 @@ class DefaultHistory {
       }
     } catch (e) {
       console.error('DefaultHistory ERROR: Invalid or corrupted history file.', e);
-      // Optionally, back up corrupted file and start fresh
-      // fs.renameSync(this._historyFile, this._historyFile + '.corrupted-' + Date.now());
+      try {
+        const corruptedFilePath = this._historyFile + '.corrupted-' + Date.now();
+        fs.renameSync(this._historyFile, corruptedFilePath);
+        console.log(`DefaultHistory: Corrupted history file backed up to ${corruptedFilePath}`);
+      } catch (backupError) {
+        console.error('DefaultHistory ERROR: Could not back up corrupted history file.', backupError);
+      }
       this.histories = {}; // Start with empty history if file is corrupt
       this.historyIndexes = {};
     }
   }
 }
 
+/**
+ * Default history handler for command prompt
+ * @exports DefaultHistory
+ */
 export default DefaultHistory;

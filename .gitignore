@@ -13,3 +13,4 @@ coverage
 /tmp
 /log
 yarn.lock
+/inquirer-command-prompt-history.json

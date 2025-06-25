@@ -1,7 +1,7 @@
-'use strict'
+'use strict';
 
-var inquirer = require('inquirer')
-inquirer.registerPrompt('command', require('..'))
+var inquirer = require('inquirer');
+inquirer.registerPrompt('command', require('..'));
 
 
 async function runPrompt() {
@@ -17,34 +17,34 @@ async function runPrompt() {
       '../folder/',
       './',
       '../'
-    ]
+    ];
   }
 
   const short = (l, m) => {
-    let res = []
+    let res = [];
     if (l) {
-      l = l.replace(/ $/, '')
-      let r = l.split('/')
+      l = l.replace(/ $/, '');
+      let r = l.split('/');
       if (r.length !== 1) {
-        r.pop()
-        r = r.join('/') + '/'
+        r.pop();
+        r = r.join('/') + '/';
       } else {
-        r = l
+        r = l;
       }
       for (let i = 0; i < m.length; i++) {
         try {
           if (m[i] !== l) {
-            m[i] = m[i].split(r)[1]
+            m[i] = m[i].split(r)[1];
             if (m[i]) {
-              res.push(m[i])
+              res.push(m[i]);
             }
           }
         } catch (e) {
         }
       }
     }
-    return res
-  }
+    return res;
+  };
 
   let answers = await inquirer.prompt([
     {
@@ -56,16 +56,16 @@ async function runPrompt() {
       validate: val => {
         return val
             ? true
-            : 'Press TAB for suggestions'
+            : 'Press TAB for suggestions';
       },
       short
     }
-  ])
+  ]);
   if (answers.cmd !== 'quit') {
-    console.log(`You run ${answers.cmd}`)
-    return runPrompt()
+    console.log(`You run ${answers.cmd}`);
+    return runPrompt();
   }
 
 }
 
-runPrompt()
+runPrompt();
