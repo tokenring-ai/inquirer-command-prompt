@@ -1,32 +1,39 @@
 {
-  "name": "inquirer-command-prompt",
-  "version": "0.1.0",
+  "name": "@token-ring/inquirer-command-prompt",
+  "version": "2.0.0",
   "license": "MIT",
   "scripts": {
     "lint": "eslint -c .eslintrc '*.js' 'test/*.js'",
     "test": "mocha test"
   },
   "type": "module",
-  "description": "A command prompt with history and autocomplete.",
+  "description": "A command prompt with history and autocomplete built on @inquirer/core.",
   "main": "index.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/sullof/inquirer-command-prompt.git"
+    "url": "git+https://github.com/Token-Ring/inquirer-command-prompt.git"
   },
   "author": {
-    "name": "Francesco Sullo",
-    "email": "francesco@sullo.co"
+    "name": "Token Ring",
+    "email": "contact@token-ring.com"
   },
+  "contributors": [
+    {
+      "name": "Francesco Sullo",
+      "email": "francesco@sullo.co"
+    }
+  ],
   "inspiredBy": "https://github.com/SBoudrias/Inquirer.js/issues/306#issuecomment-252516909 by Allen Kim (https://github.com/allenhwkim)",
   "bugs": {
-    "url": "https://github.com/sullof/inquirer-command-prompt/issues"
+    "url": "https://github.com/Token-Ring/inquirer-command-prompt/issues"
   },
-  "homepage": "https://github.com/sullof/inquirer-command-prompt#readme",
+  "homepage": "https://github.com/Token-Ring/inquirer-command-prompt#readme",
   "dependencies": {
-    "chalk": "^2.4.2",
-    "fs-extra": "^8.1.0",
-    "inquirer": "^7.3.3",
-    "lodash": "^4.17.19"
+    "@inquirer/core": "^10.1.0",
+    "@inquirer/type": "^3.0.1",
+    "chalk": "^5.3.0",
+    "fs-extra": "^11.2.0",
+    "lodash": "^4.17.21"
   },
   "devDependencies": {
     "babel-eslint": "^10.1.0",

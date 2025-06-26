@@ -8,7 +8,7 @@ import fsExtra from 'fs-extra'; // For stubbing and real file operations
 
 // Helper imports (assuming these are correctly located relative to test/index.js)
 import ReadlineStub from './helpers/readline.js';
-import PromptModule from '../index.js'; // Using PromptModule to avoid conflict
+import commandPrompt from '../index.js'; // Using commandPrompt function
 import DefaultHistory from '../DefaultHistory.js'; // Direct import for instanceof, etc.
 
 const __filename = fileURLToPath(import.meta.url);

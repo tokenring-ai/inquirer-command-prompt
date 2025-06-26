@@ -1,11 +1,6 @@
-'use strict';
-
-var inquirer = require('inquirer');
-inquirer.registerPrompt('command', require('..'));
-
+import commandPrompt from '../index.js';
 
 async function runPrompt() {
-
   async function fileCompletion() {
     return [
       '../dir/',
@@ -46,26 +41,24 @@ async function runPrompt() {
     return res;
   };
 
-  let answers = await inquirer.prompt([
-    {
-      type: 'command',
-      name: 'cmd',
-      autoCompletion: fileCompletion,
+  try {
+    const answer = await commandPrompt({
       message: '>',
-      context: 0,
+      autoCompletion: fileCompletion,
+      context: '0',
       validate: val => {
-        return val
-            ? true
-            : 'Press TAB for suggestions';
+        return val ? true : 'Press TAB for suggestions';
       },
       short
-    }
-  ]);
-  if (answers.cmd !== 'quit') {
-    console.log(`You run ${answers.cmd}`);
-    return runPrompt();
-  }
+    });
 
+    if (answer !== 'quit') {
+      console.log(`You run ${answer}`);
+      return runPrompt();
+    }
+  } catch (err) {
+    console.error(err.stack);
+  }
 }
 
 runPrompt();
