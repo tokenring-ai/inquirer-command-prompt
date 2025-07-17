@@ -66,7 +66,7 @@ class FileBackedHistory {
   * @private
   */
  _ensureHistoryFile() {
-  if (this.config.save && this._historyFile) {
+  if (this._historyFile) {
    try {
     fs.ensureDirSync(path.dirname(this._historyFile));
     return true;
@@ -77,7 +77,7 @@ class FileBackedHistory {
     return false;
    }
   }
-  return true; // Or false if save is not enabled, depending on desired semantics
+  return false; // No history file path available
  }
 
  /**
@@ -158,9 +158,11 @@ class FileBackedHistory {
   * Save history to file
   */
  save() {
-  if (!this.config.save || !this._historyFile) {
-   return;
+  // Ensure we have a history file path (create it if needed)
+  if (!this._historyFile) {
+   this._historyFile = path.join(this.config.folder, this.config.fileName);
   }
+  
   // _ensureHistoryFile now returns false if it fails, and logs the error.
   if (!this._ensureHistoryFile()) {
    // If directory creation failed, optionally disable future save attempts for this session
@@ -184,7 +186,12 @@ class FileBackedHistory {
   * Load history from file
   */
  load() {
-  if (!this.config.save || !this._historyFile || !fs.existsSync(this._historyFile)) {
+  // Ensure we have a history file path (create it if needed)
+  if (!this._historyFile) {
+   this._historyFile = path.join(this.config.folder, this.config.fileName);
+  }
+  
+  if (!fs.existsSync(this._historyFile)) {
    return;
   }
   try {

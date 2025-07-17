@@ -2,8 +2,9 @@ import chalk from 'chalk';
 import {createPrompt, isDownKey, isEnterKey, isUpKey, makeTheme, useKeypress, usePrefix, useState, useMemo} from '@inquirer/core';
 
 import EphemeralHistory from './EphemeralHistory.js';
+const defaultHistory = new EphemeralHistory();
 
-import {formatIndex, formatList, isAsyncFunc, short} from './helpers.js';
+import {formatIndex, formatList, short} from './helpers.js';
 
 /**
  * @typedef {Object} AutoCompleterResult
@@ -46,25 +47,11 @@ import {formatIndex, formatList, isAsyncFunc, short} from './helpers.js';
 /**
  * Format auto-completion results
  * @param {string} line - The current input line
- * @param {Array<string[]>} cmds - Array of possible completions
- * @returns {AutoCompleterResult} Formatted auto-completion result with matches as string[]
+ * @param {string[]} cmds - Array of possible completions
+ * @returns {string[]} Formatted auto-completion result with matches as string[]
  */
 function autoCompleterFormatter(line, cmds) {
- if (!Array.isArray(cmds)) {
-  return {match: line, matches: []};
- }
-
  let max = 0;
- let options = {filter: str => str};
-
- // First element in cmds can be an object with special instructions
- if (typeof cmds[0] === 'object' && cmds[0] !== null && !Array.isArray(cmds[0])) {
-  const f = cmds[0].filter;
-  if (typeof f === 'function') {
-   options.filter = f;
-  }
-  cmds = cmds.slice(1);
- }
 
  const filteredCmds = cmds.reduce(( sum, el) => {
   const sanitizedLine = line.replace(/[\\.+*?^$\[\](){}\/'#:!=|]/ig, '\\$&');
@@ -77,31 +64,7 @@ function autoCompleterFormatter(line, cmds) {
   return sum;
  }, []);
 
- if (filteredCmds.length > 1) {
-  let commonStr = '';
-  LOOP: for (let i = line.length; i < max; i++) {
-   let c = null;
-   for (let l of filteredCmds) {
-    if (!l[i]) {
-     break LOOP;
-    } else if (!c) {
-     c = l[i];
-    } else if (c !== l[i]) {
-     break LOOP;
-    }
-   }
-   commonStr += c;
-  }
-  if (commonStr) {
-   return {match: options.filter(line + commonStr)};
-  } else {
-   return {matches: filteredCmds};
-  }
- } else if (filteredCmds.length === 1) {
-  return {match: options.filter(filteredCmds[0])};
- } else {
-  return {match: options.filter(line)};
- }
+ return filteredCmds.slice(0,max);
 }
 
 
@@ -114,43 +77,40 @@ export default createPrompt((config, done) => {
  const {
   theme: themeConfig,
   default: defaultValue,
-  historyHandler: configHistoryHandler,
+  historyHandler = defaultHistory,
   autoCompletion,
   transformer,
   validate,
   required,
-  onBeforeKeyPress,
-  onBeforeRewrite,
   autocompletePrompt,
   short: shortConfig,
   maxSize,
   ellipsize,
   ellipsis,
-  message,
-  noColorOnAnswered,
-  colorOnAnswered
+  message
  } = config;
 
  const theme = makeTheme({}, themeConfig);
  const [status, setStatus] = useState('idle');
  const [value, setValue] = useState(defaultValue || '');
- const [errorMsg, setError] = useState();
- const [displayMode, setDisplayMode] = useState('normal'); // 'normal', 'history', 'autocomplete'
- const [displayContent, setDisplayContent] = useState('');
 
- // Initialize history handler
- const historyHandler = useMemo(() => configHistoryHandler ?? new EphemeralHistory(), [configHistoryHandler]);
+ const [displayContent, setDisplayContent] = useState('');
 
  const prefix = usePrefix({status, theme});
 
  const autoCompleter = useMemo(() => {
   if (autoCompletion) {
    return async (line) => {
-    const commands = await autoCompletion(line);
+    let commands;
+    if (Array.isArray(autoCompletion)) {
+     commands = autoCompletion.filter( cmd => cmd.startsWith(line));
+    } else {
+     commands = await autoCompletion(line);
+    }
     return autoCompleterFormatter(line, commands);
    };
   }
-  return () => ({match: '', matches: []});
+  return () => [];
  }, [autoCompletion]);
 
  useKeypress(async (key, rl) => {
@@ -159,24 +119,11 @@ export default createPrompt((config, done) => {
    return;
   }
 
-  // Always sync our state with readline first (except for special keys)
-  if (!isEnterKey(key) && !isUpKey(key) && !isDownKey(key) && key.name !== 'tab' &&
-   !(key.name === 'right' && key.shift) && !(key.name === 'end' && key.ctrl)) {
-   setValue(rl.line);
-   // Clear display mode when typing
-   if (displayMode !== 'normal') {
-    setDisplayMode('normal');
-    setDisplayContent('');
-   }
-  }
-
-  // Call onBeforeKeyPress if provided
-  if (onBeforeKeyPress) {
-   try {
-    onBeforeKeyPress({key});
-   } catch (err) {
-    console.error('Error in onBeforeKeyPress:', err);
-   }
+  function resetValue(newValue, displayContent = '') {
+   rl.line = newValue;
+   rl.cursor = newValue.length;
+   setValue(newValue);
+   setDisplayContent(displayContent);
   }
 
   if (isEnterKey(key)) {
@@ -200,79 +147,56 @@ export default createPrompt((config, done) => {
     // Add to history
     historyHandler.add(answer);
     setStatus('done');
-    setDisplayMode('normal');
     setDisplayContent('');
     done(answer);
    } else {
-    setError(typeof isValid === 'string' ? isValid : 'You must provide a valid value');
+    resetValue(
+     value,
+     theme.style.error(typeof isValid === 'string' ? isValid : 'You must provide a valid value')
+    );
     setStatus('idle');
-    // Ensure rl.line stays in sync with our value state after validation failure
-    rl.line = value;
-    rl.cursor = value.length;
    }
-  } else if (isUpKey(key)) {
+  } else if (key.name === 'up') {
    const previousCommand = historyHandler.getPrevious();
-   if (previousCommand !== undefined) {
-    setValue(previousCommand);
-    rl.line = previousCommand;
-    rl.cursor = previousCommand.length;
-   }
-   if (displayMode !== 'normal') {
-    setDisplayMode('normal');
-    setDisplayContent('');
-   }
-  } else if (isDownKey(key)) {
+   resetValue(previousCommand ?? rl.line);
+  } else if (key.name === 'down') {
    const nextCommand = historyHandler.getNext();
-   const lineValue = nextCommand !== undefined ? nextCommand : '';
-   setValue(lineValue);
-   rl.line = lineValue;
-   rl.cursor = lineValue.length;
-   // Clear display mode when navigating history
-   if (displayMode !== 'normal') {
-    setDisplayMode('normal');
-    setDisplayContent('');
-   }
+   resetValue(nextCommand ?? '');
   } else if (key.name === 'tab') {
    // Handle tab completion
    let line = value.replace(/^ +/, '').replace(/\t/, '').replace(/ +/g, ' ');
-   try {
-    let ac;
-    if (isAsyncFunc(autoCompletion)) {
-     ac = await autoCompleter(line);
-    } else {
-     ac = autoCompleter(line);
-    }
 
-    if (ac.match && ac.match !== line) {
-     const newValue = onBeforeRewrite ? onBeforeRewrite(ac.match) : ac.match;
-     setValue(newValue);
-     rl.line = newValue;
-     rl.cursor = newValue.length;
-     setDisplayMode('normal');
-     setDisplayContent('');
-    } else if (ac.matches && ac.matches.length > 0) {
-     // Display autocompletion suggestions
-     const promptMessage = autocompletePrompt || chalk.red('>> ') + chalk.grey('Available commands:');
-     const formattedList = formatList(
-      shortConfig
-       ? (typeof shortConfig === 'function'
-        ? shortConfig(line, ac.matches)
-        : short(line, ac.matches))
-       : ac.matches,
-      maxSize,
-      ellipsize,
-      ellipsis
-     );
-     setDisplayMode('autocomplete');
-     setDisplayContent(`${promptMessage}\n${formattedList}`);
-     // Keep the current value
-     rl.line = value;
-     rl.cursor = value.length;
-    }
-   } catch (err) {
-    console.error('Error during tab completion:', err);
+   let matches = await autoCompleter(line) ?? [];
+
+   if (matches.length === 0) {
+    resetValue(
+     value,
+     chalk.red('>> ') + chalk.grey('No available commands')
+    );
+   } else if (matches.length === 1) {
+    resetValue(matches[0]);
+   } else {
+    // Keep the current value
     rl.line = value;
     rl.cursor = value.length;
+
+    // Display autocompletion suggestions
+    const promptMessage = autocompletePrompt || chalk.red('>> ') + chalk.grey('Available commands:');
+    const formattedList = formatList(
+     shortConfig
+      ? (typeof shortConfig === 'function'
+       ? shortConfig(line, matches)
+       : short(line, matches))
+      : matches,
+     maxSize,
+     ellipsize,
+     ellipsis
+    );
+
+    resetValue(
+     value,
+     `${promptMessage}\n${formattedList}`
+    );
    }
   } else if (key.name === 'right' && key.shift) {
    // Display all history entries
@@ -289,44 +213,26 @@ export default createPrompt((config, done) => {
     }
    }
 
-   setDisplayMode('history');
-   setDisplayContent(historyDisplay);
-   setValue('');
-   rl.line = '';
-   rl.cursor = 0;
+   resetValue(
+    value,
+    historyDisplay
+   );
   } else {
-   // For all other keys, clear any error and display mode
-   setError(undefined);
-   if (displayMode !== 'normal') {
-    setDisplayMode('normal');
-    setDisplayContent('');
+   // Update the value without transformation - transformer is only for display
+   setValue(rl.line);
+   setDisplayContent('');
    }
-  }
  });
 
  const messageText = theme.style.message(message, status);
 
- let formattedValue = value;
- if (typeof transformer === 'function') {
-  try {
-   formattedValue = transformer(value, {}, {isFinal: status === 'done'});
-  } catch (err) {
-   console.error('Error in transformer function:', err);
-  }
- } else if (status === 'done') {
-  formattedValue = noColorOnAnswered
-   ? value
-   : chalk[colorOnAnswered || 'cyan'](value);
- }
+ // Apply transformer only for display purposes
+ const displayValue = transformer ? transformer(value) : value;
+ let formattedValue = theme.style.answer(displayValue);
 
  let defaultStr = '';
  if (defaultValue && status !== 'done' && !value) {
   defaultStr = theme.style.defaultAnswer(defaultValue);
- }
-
- let error = '';
- if (errorMsg) {
-  error = theme.style.error(errorMsg);
  }
 
  // Build the display output
@@ -334,16 +240,6 @@ export default createPrompt((config, done) => {
  .filter((v) => v !== undefined && v !== '')
  .join(' ');
 
- const output = [mainLine];
 
- if (error) {
-  output.push(error);
- }
-
- // Add display content for history or autocomplete
- if (displayMode !== 'normal' && displayContent) {
-  output.push(displayContent);
- }
-
- return output.join('\n');
+ return [mainLine, displayContent];
 });

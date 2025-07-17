@@ -3,40 +3,12 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve as pathResolve } from 'node:path';
 import sinon from 'sinon';
 import fsExtra from 'fs-extra';
+import { render } from '@inquirer/testing';
 import commandPrompt from '../index.js';
 import EphemeralHistory from '../EphemeralHistory.js';
 import FileBackedHistory from '../FileBackedHistory.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-
-// Helper to simulate user input for testing
-function simulateUserInput(input, delay = 50) {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      // Mock the readline interface
-      const mockRl = {
-        line: input,
-        cursor: input.length,
-        setRawMode: () => {},
-        resume: () => {},
-        pause: () => {},
-        close: () => {},
-        write: () => {},
-        clearLine: () => {},
-        cursorTo: () => {}
-      };
-      
-      // Simulate keypress events
-      const events = [];
-      for (let char of input) {
-        events.push({ name: char, sequence: char });
-      }
-      events.push({ name: 'return', sequence: '\r' });
-      
-      resolve({ mockRl, events });
-    }, delay);
-  });
-}
 
 
 describe('inquirer-command-prompt', function () {
@@ -44,73 +16,209 @@ describe('inquirer-command-prompt', function () {
 
   describe('Basic Functionality', function () {
     it('should handle basic input and return result', async function () {
-      // This is a simplified test that focuses on the configuration and interface
-      // rather than actual user interaction simulation
+      const { answer, events} = await render(commandPrompt, {
+        message: 'Enter command:'
+      });
+
+      // Type some input
+      events.type('hello world');
       
-      const config = {
-        message: '>',
-        context: 'basic_test',
-        default: 'test_default'
-      };
+      // Press Enter to submit
+      events.keypress('enter');
+
+      // Wait for the answer
+      const result = await answer;
       
-      // Test that the configuration is properly structured
-      assert.strictEqual(config.message, '>');
-      assert.strictEqual(config.context, 'basic_test');
-      assert.strictEqual(config.default, 'test_default');
+      assert.strictEqual(result, 'hello world');
     });
 
-    it('should handle validation configuration', function () {
+    it('should handle default values', async function () {
+      const { answer, events} = await render(commandPrompt, {
+        message: 'Enter command:',
+        default: 'default_value'
+      });
+
+      // Just press Enter without typing anything
+      events.keypress('enter');
+
+      // Wait for the answer
+      const result = await answer;
+      
+      assert.strictEqual(result, 'default_value');
+    });
+
+    it('should be a function that returns a promise', function () {
+      assert.strictEqual(typeof commandPrompt, 'function');
+      
+      // Create a basic config
+      const config = { message: 'Test:' };
+      
+      // The function should return a promise (but we won't await it to avoid hanging)
+      const result = commandPrompt(config);
+      assert.ok(result instanceof Promise);
+    });
+
+    it('should handle validation and reject invalid input', async function () {
       const validateFn = (input) => input.includes('test') ? true : 'Must contain test';
       
-      const config = {
-        message: '>',
-        context: 'validation_test',
+      const { answer, events, getScreen } = await render(commandPrompt, {
+        message: 'Enter command:',
         validate: validateFn
-      };
+      });
+
+      // Type invalid input first
+      events.type('hello');
+      events.keypress('enter');
       
-      assert.strictEqual(typeof config.validate, 'function');
-      assert.strictEqual(config.validate('test123'), true);
-      assert.strictEqual(config.validate('hello'), 'Must contain test');
+      // Wait a bit for the validation to process
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      // Should show error message and not resolve yet
+      const screen1 = getScreen();
+      assert.ok(screen1.includes('Must contain test'));
+
+      // Clear the input and type valid input
+      // Clear existing input by pressing backspace multiple times
+      for (let i = 0; i < 10; i++) {
+        events.keypress('backspace');
+      }
+      events.type('test123');
+      events.keypress('enter');
+
+      // Wait for the answer
+      const result = await answer;
+      
+      assert.strictEqual(result, 'test123');
     });
 
-    it('should handle transformer configuration', function () {
+    it('should handle required validation', async function () {
+      const { answer, events, getScreen } = await render(commandPrompt, {
+        message: 'Enter command:',
+        required: true
+      });
+
+      // Try to submit empty input
+      events.keypress('enter');
+      
+      // Should show error message
+      const screen1 = getScreen();
+      assert.ok(screen1.includes('You must provide a value'));
+
+      // Now type valid input
+      events.type('valid input');
+      events.keypress('enter');
+
+      // Wait for the answer
+      const result = await answer;
+      
+      assert.strictEqual(result, 'valid input');
+    });
+
+    it('should handle transformer configuration', async function () {
       const transformerFn = (input) => input.toUpperCase();
       
-      const config = {
-        message: '>',
-        context: 'transformer_test',
+      const { answer, events, getScreen } = await render(commandPrompt, {
+        message: 'Enter command:',
         transformer: transformerFn
-      };
+      });
+
+      // Type input
+      events.type('hello world');
       
-      assert.strictEqual(typeof config.transformer, 'function');
-      assert.strictEqual(config.transformer('hello'), 'HELLO');
+      // The screen should show the transformed (uppercase) version
+      const screen = getScreen();
+      assert.ok(screen.includes('HELLO WORLD'));
+      
+      events.keypress('enter');
+
+      // Wait for the answer - should be the original input, not transformed
+      const result = await answer;
+      
+      // Note: transformer only affects display, not the actual returned value
+      assert.strictEqual(result, 'hello world');
     });
   });
 
-  describe('Auto-completion Configuration', function () {
-    it('should handle array-based auto-completion', function () {
+  describe('Auto-completion Functionality', function () {
+    it('should handle array-based auto-completion with tab key', async function () {
       const availableCommands = ['foo', 'bar', 'baz'];
       
-      const config = {
-        message: '>',
-        context: 'autocomplete_array_test',
+      const { answer, events, getScreen } = await render(commandPrompt, {
+        message: 'Enter command:',
         autoCompletion: availableCommands
-      };
+      });
+
+      // Type partial command
+      events.type('f');
       
-      assert.deepStrictEqual(config.autoCompletion, availableCommands);
+      // Press tab to trigger auto-completion
+      events.keypress('tab');
+      
+      // Wait a bit for auto-completion to process
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      // Should complete to 'foo' since it's the only match
+      const screen = getScreen();
+      assert.ok(screen.includes('foo'));
+      
+      events.keypress('enter');
+      const result = await answer;
+      assert.strictEqual(result, 'foo');
     });
 
-    it('should handle function-based auto-completion', function () {
+    it('should show multiple auto-completion options', async function () {
+      const availableCommands = ['foo', 'foobar', 'fizz', 'bar'];
+      
+      const { answer, events, getScreen } = await render(commandPrompt, {
+        message: 'Enter command:',
+        autoCompletion: availableCommands
+      });
+
+      // Type partial command that matches multiple options
+      events.type('f');
+      
+      // Press tab to trigger auto-completion
+      events.keypress('tab');
+      
+      // Wait a bit for auto-completion to process
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      // Should show available commands
+      const screen = getScreen();
+      assert.ok(screen.includes('Available commands') || screen.includes('foo'));
+      
+      // Complete the command manually
+      events.type('oo');
+      events.keypress('enter');
+      
+      const result = await answer;
+      assert.strictEqual(result, 'foo');
+    });
+
+    it('should handle function-based auto-completion', async function () {
       const autoCompleteFn = (line) => ['foo', 'bar'].filter(cmd => cmd.startsWith(line));
       
-      const config = {
-        message: '>',
-        context: 'autocomplete_fn_test',
+      const { answer, events, getScreen } = await render(commandPrompt, {
+        message: 'Enter command:',
         autoCompletion: autoCompleteFn
-      };
+      });
+
+      // Type partial command
+      events.type('f');
       
-      assert.strictEqual(typeof config.autoCompletion, 'function');
-      assert.deepStrictEqual(config.autoCompletion('f'), ['foo']);
+      // Press tab to trigger auto-completion
+      events.keypress('tab');
+      
+      // Wait a bit for auto-completion to process
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      // Should complete to 'foo'
+      const screen = getScreen();
+      assert.ok(screen.includes('foo'));
+      
+      events.keypress('enter');
+      const result = await answer;
+      assert.strictEqual(result, 'foo');
     });
 
     it('should handle async auto-completion', async function () {
@@ -119,15 +227,27 @@ describe('inquirer-command-prompt', function () {
         return ['async_foo', 'async_bar'].filter(cmd => cmd.startsWith(line));
       };
       
-      const config = {
-        message: '>',
-        context: 'autocomplete_async_test',
+      const { answer, events, getScreen } = await render(commandPrompt, {
+        message: 'Enter command:',
         autoCompletion: asyncAutoComplete
-      };
+      });
+
+      // Type partial command
+      events.type('async_f');
       
-      assert.strictEqual(typeof config.autoCompletion, 'function');
-      const result = await config.autoCompletion('async_f');
-      assert.deepStrictEqual(result, ['async_foo']);
+      // Press tab to trigger auto-completion
+      events.keypress('tab');
+      
+      // Wait a bit for auto-completion to process
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      // Should complete to 'async_foo'
+      const screen = getScreen();
+      assert.ok(screen.includes('async_foo'));
+      
+      events.keypress('enter');
+      const result = await answer;
+      assert.strictEqual(result, 'async_foo');
     });
   });
 
@@ -149,23 +269,71 @@ describe('inquirer-command-prompt', function () {
       }
     });
 
-    it('should work with EphemeralHistory', function () {
+    it('should work with EphemeralHistory and up/down arrow navigation', async function () {
       const historyHandler = new EphemeralHistory();
       
-      const config = {
-        message: '>',
-        context: 'ephemeral_test',
+      // Pre-populate history
+      historyHandler.add('first_command');
+      historyHandler.add('second_command');
+      
+      const { answer, events, getScreen } = await render(commandPrompt, {
+        message: 'Enter command:',
         historyHandler: historyHandler
-      };
+      });
+
+      // Press up arrow to get previous command
+      events.keypress('up');
       
-      assert.strictEqual(config.historyHandler, historyHandler);
+      // Should show the last command
+      let screen = getScreen();
+      assert.ok(screen.includes('second_command'));
       
-      // Test that the history handler works correctly
-      historyHandler.init('ephemeral_test');
-      historyHandler.add('ephemeral_test', 'test_command');
+      // Press up arrow again to get the command before that
+      events.keypress('up');
       
-      assert.deepStrictEqual(historyHandler.getAll('ephemeral_test'), ['test_command']);
-      assert.strictEqual(historyHandler.getPrevious('ephemeral_test'), 'test_command');
+      screen = getScreen();
+      assert.ok(screen.includes('first_command'));
+      
+      // Press down arrow to go forward in history
+      events.keypress('down');
+      
+      screen = getScreen();
+      assert.ok(screen.includes('second_command'));
+      
+      events.keypress('enter');
+      const result = await answer;
+      assert.strictEqual(result, 'second_command');
+    });
+
+    it('should display history with Shift+Right', async function () {
+      const historyHandler = new EphemeralHistory();
+      
+      // Pre-populate history
+      historyHandler.add('first_command');
+      historyHandler.add('second_command');
+      historyHandler.add('third_command');
+      
+      const { answer, events, getScreen } = await render(commandPrompt, {
+        message: 'Enter command:',
+        historyHandler: historyHandler
+      });
+
+      // Press Shift+Right to display history
+      events.keypress({ name: 'right', shift: true });
+      
+      // Should show history display
+      const screen = getScreen();
+      assert.ok(screen.includes('History:'));
+      assert.ok(screen.includes('first_command'));
+      assert.ok(screen.includes('second_command'));
+      assert.ok(screen.includes('third_command'));
+      
+      // Type a new command and submit
+      events.type('new_command');
+      events.keypress('enter');
+      
+      const result = await answer;
+      assert.strictEqual(result, 'new_command');
     });
 
     it('should work with FileBackedHistory', async function () {

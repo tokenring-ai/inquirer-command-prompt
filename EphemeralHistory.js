@@ -10,11 +10,11 @@ class EphemeralHistory {
   * @param {string[]} [config.blacklist=[]] - Commands to exclude from history
   */
  constructor(config = {}) {
-  /** @type {Object.<string, string[]>} Maps context to array of commands */
-  this.histories = {};
+  /** @type {string[]} Maps context to array of commands */
+  this.history = [];
 
-  /** @type {Object.<string, number>} Maps context to current index in its history array */
-  this.historyIndexes = {};
+  /** @type {number} Maps context to current index in its history array */
+  this.historyIndex = -1;
 
   /**
    * @type {Object} Configuration options
@@ -37,67 +37,49 @@ class EphemeralHistory {
  }
 
  /**
-  * Initialize history for a context
-  * @param {string} context - The context to initialize
-  */
- init(context) {
-  if (!this.histories[context]) {
-   this.histories[context] = [];
-   this.historyIndexes[context] = 0;
-  }
- }
-
- /**
   * Add a command to history
-  * @param {string} context - The context to add to
   * @param {string} value - The command to add
   */
- add(context, value) {
-  this.init(context); // Ensure context is initialized
-
+ add(value) {
   if (this.config.blacklist && this.config.blacklist.includes(value)) {
    return;
   }
 
   // Avoid adding duplicate of the last command
-  if (this.histories[context][this.histories[context].length - 1] !== value) {
-   this.histories[context].push(value);
+  if (this.history[this.history.length - 1] !== value) {
+   this.history.push(value);
    // If history limit is exceeded, remove the oldest entry
-   if (this.config.limit && this.histories[context].length > this.config.limit) {
-    this.histories[context].shift();
+   if (this.config.limit && this.history.length > this.config.limit) {
+    this.history.shift();
    }
   }
   // Always reset index to the end (pointing to the new empty line) after adding
-  this.historyIndexes[context] = this.histories[context].length;
+  this.historyIndex = this.history.length;
  }
 
  /**
   * Get the previous command in history
-  * @param {string} context - The context to get from
   * @returns {string|undefined} The previous command or undefined if at beginning
   */
- getPrevious(context) {
-  this.init(context); // Ensure context is initialized
-  if (this.historyIndexes[context] > 0) {
-   this.historyIndexes[context]--;
-   return this.histories[context][this.historyIndexes[context]];
+ getPrevious() {
+  if (this.historyIndex > 0) {
+   this.historyIndex--;
+   return this.history[this.historyIndex];
   }
   return undefined; // At the beginning or no history
  }
 
  /**
   * Get the next command in history
-  * @param {string} context - The context to get from
   * @returns {string|undefined} The next command or undefined if at end
   */
- getNext(context) {
-  this.init(context); // Ensure context is initialized
-  if (this.historyIndexes[context] < this.histories[context].length - 1) {
-   this.historyIndexes[context]++;
-   return this.histories[context][this.historyIndexes[context]];
-  } else if (this.historyIndexes[context] === this.histories[context].length - 1) {
+ getNext() {
+  if (this.historyIndex < this.history.length - 1) {
+   this.historyIndex++;
+   return this.history[this.historyIndex];
+  } else if (this.historyIndex === this.history.length - 1) {
    // If at the last item, increment index to point "after" it (for new input)
-   this.historyIndexes[context]++;
+   this.historyIndex++;
    return undefined; // Indicates user should see an empty line
   }
   return undefined; // Already at the "new input" line or no history
@@ -105,31 +87,20 @@ class EphemeralHistory {
 
  /**
   * Get all commands in history for a context
-  * @param {string} context - The context to get from
   * @returns {string[]} Array of all commands in history
   */
- getAll(context) {
-  this.init(context);
-  return [...this.histories[context]]; // Return a copy
+ getAll() {
+   return [...this.history]; // Return a copy
  }
 
  /**
   * Clear all history for a specific context
-  * @param {string} context - The context to clear
   */
- clear(context) {
-  if (this.histories[context]) {
-   this.histories[context] = [];
-   this.historyIndexes[context] = 0;
+ clear() {
+  if (this.history) {
+   this.history = [];
+   this.historyIndex = 0;
   }
- }
-
- /**
-  * Clear all history for all contexts
-  */
- clearAll() {
-  this.histories = {};
-  this.historyIndexes = {};
  }
 }
 

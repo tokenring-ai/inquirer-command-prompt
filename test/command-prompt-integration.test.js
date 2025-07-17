@@ -1,7 +1,6 @@
 import assert from 'node:assert';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve as pathResolve } from 'node:path';
-import sinon from 'sinon';
 import fsExtra from 'fs-extra';
 import commandPrompt from '../index.js';
 import EphemeralHistory from '../EphemeralHistory.js';
@@ -175,14 +174,12 @@ describe('Command Prompt Integration Tests', function () {
       assert.strictEqual(config.historyHandler, historyHandler);
       assert.strictEqual(historyHandler.config.limit, 10);
 
-      // Test history functionality
-      historyHandler.init('ephemeral_integration_test');
-      historyHandler.add('ephemeral_integration_test', 'test_command_1');
-      historyHandler.add('ephemeral_integration_test', 'test_command_2');
+      historyHandler.add('test_command_1');
+      historyHandler.add('test_command_2');
 
-      assert.deepStrictEqual(historyHandler.getAll('ephemeral_integration_test'), ['test_command_1', 'test_command_2']);
-      assert.strictEqual(historyHandler.getPrevious('ephemeral_integration_test'), 'test_command_2');
-      assert.strictEqual(historyHandler.getPrevious('ephemeral_integration_test'), 'test_command_1');
+      assert.deepStrictEqual(historyHandler.getAll(), ['test_command_1', 'test_command_2']);
+      assert.strictEqual(historyHandler.getPrevious(), 'test_command_2');
+      assert.strictEqual(historyHandler.getPrevious(), 'test_command_1');
     });
 
     it('should work with FileBackedHistory', async function () {
@@ -237,48 +234,9 @@ describe('Command Prompt Integration Tests', function () {
       assert.strictEqual(config.history.limit, 20);
       assert.deepStrictEqual(config.history.blacklist, ['clear', 'exit']);
     });
-
-    it('should handle multiple contexts with EphemeralHistory', function () {
-      const historyHandler = new EphemeralHistory();
-
-      // Test multiple contexts
-      historyHandler.init('context1');
-      historyHandler.init('context2');
-
-      historyHandler.add('context1', 'cmd1_ctx1');
-      historyHandler.add('context1', 'cmd2_ctx1');
-      historyHandler.add('context2', 'cmd1_ctx2');
-      historyHandler.add('context2', 'cmd2_ctx2');
-
-      assert.deepStrictEqual(historyHandler.getAll('context1'), ['cmd1_ctx1', 'cmd2_ctx1']);
-      assert.deepStrictEqual(historyHandler.getAll('context2'), ['cmd1_ctx2', 'cmd2_ctx2']);
-
-      // Test that contexts are independent
-      assert.strictEqual(historyHandler.getPrevious('context1'), 'cmd2_ctx1');
-      assert.strictEqual(historyHandler.getPrevious('context2'), 'cmd2_ctx2');
-    });
   });
 
   describe('Event Handlers Integration', function () {
-    it('should handle onCtrlEnd configuration', function () {
-      const onCtrlEndFn = (line) => {
-        if (line.startsWith('sudo ')) {
-          return line; // Keep sudo commands as-is
-        }
-        return `sudo ${line}`; // Add sudo prefix
-      };
-
-      const config = {
-        message: 'Enter command:',
-        context: 'ctrl_end_integration_test',
-        onCtrlEnd: onCtrlEndFn
-      };
-
-      assert.strictEqual(typeof config.onCtrlEnd, 'function');
-      assert.strictEqual(config.onCtrlEnd('ls -la'), 'sudo ls -la');
-      assert.strictEqual(config.onCtrlEnd('sudo rm file'), 'sudo rm file');
-    });
-
     it('should handle onBeforeKeyPress configuration', function () {
       const keyPressLog = [];
       const onBeforeKeyPressFn = ({ key }) => {
@@ -439,23 +397,5 @@ describe('Command Prompt Integration Tests', function () {
                            new Array(10).fill(0).map((_, i) => `cmd${i}`));
     });
 
-    it('should demonstrate commandPrompt function signature', function () {
-      // This test demonstrates that commandPrompt is a function that accepts configuration
-      // and returns a Promise (though we won't actually call it in tests)
-      
-      assert.strictEqual(typeof commandPrompt, 'function');
-      assert.strictEqual(commandPrompt.length, 1); // Expects one argument (config)
-      
-      // Test that it would accept our configuration format
-      const config = {
-        message: 'Test:',
-        context: 'signature_test'
-      };
-      
-      // We can't actually call it in tests without user interaction,
-      // but we can verify it's the right type of function
-      const result = commandPrompt.toString();
-      assert.ok(result.includes('createPrompt')); // Should be created with createPrompt
-    });
   });
 });
