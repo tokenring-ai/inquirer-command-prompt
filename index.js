@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import {createPrompt, isDownKey, isEnterKey, isUpKey, makeTheme, useKeypress, usePrefix, useState,} from '@inquirer/core';
+import {createPrompt, isDownKey, isEnterKey, isUpKey, makeTheme, useKeypress, usePrefix, useState, useMemo} from '@inquirer/core';
 
 import EphemeralHistory from './EphemeralHistory.js';
 
@@ -25,7 +25,7 @@ import {formatIndex, formatList, isAsyncFunc, short} from './helpers.js';
  * @typedef {Object} CommandPromptConfig
  * @property {string} message - The prompt message
  * @property {HistoryHandler} [historyHandler] - Custom history handler
- * @property {(line) => Promise<string[]> | string[]} [autoCompletion] - Auto-completion function or array
+ * @property {(line: string) => Promise<string[]> | string[]} [autoCompletion] - Auto-completion function or array
  * @property {Function} [transformer] - Transform the displayed value
  * @property {Function} [validate] - Validate the input
  * @property {boolean} [required] - Whether input is required
@@ -46,8 +46,8 @@ import {formatIndex, formatList, isAsyncFunc, short} from './helpers.js';
 /**
  * Format auto-completion results
  * @param {string} line - The current input line
- * @param {Array<string|Object>} cmds - Array of possible completions
- * @returns {AutoCompleterResult} Formatted auto-completion result
+ * @param {Array<string[]>} cmds - Array of possible completions
+ * @returns {AutoCompleterResult} Formatted auto-completion result with matches as string[]
  */
 function autoCompleterFormatter(line, cmds) {
  if (!Array.isArray(cmds)) {
@@ -66,11 +66,13 @@ function autoCompleterFormatter(line, cmds) {
   cmds = cmds.slice(1);
  }
 
- const filteredCmds = cmds.reduce((sum, el) => {
+ const filteredCmds = cmds.reduce(( sum, el) => {
   const sanitizedLine = line.replace(/[\\.+*?^$\[\](){}\/'#:!=|]/ig, '\\$&');
-  if (RegExp(`^${sanitizedLine}`).test(el)) {
-   sum.push(el);
-   max = Math.max(max, el.length);
+  // Convert any non-string elements to strings before testing and pushing
+  const elStr = typeof el === 'string' ? el : String(el);
+  if (RegExp(`^${sanitizedLine}`).test(elStr)) {
+   sum.push(elStr);
+   max = Math.max(max, elStr.length);
   }
   return sum;
  }, []);
@@ -109,27 +111,47 @@ function autoCompleterFormatter(line, cmds) {
  * @returns {Promise<string>} Promise that resolves with the user's input
  */
 export default createPrompt((config, done) => {
- const theme = makeTheme({}, config.theme);
+ const {
+  theme: themeConfig,
+  default: defaultValue,
+  historyHandler: configHistoryHandler,
+  autoCompletion,
+  transformer,
+  validate,
+  required,
+  onBeforeKeyPress,
+  onBeforeRewrite,
+  autocompletePrompt,
+  short: shortConfig,
+  maxSize,
+  ellipsize,
+  ellipsis,
+  message,
+  noColorOnAnswered,
+  colorOnAnswered
+ } = config;
+
+ const theme = makeTheme({}, themeConfig);
  const [status, setStatus] = useState('idle');
- const [value, setValue] = useState(config.default || '');
+ const [value, setValue] = useState(defaultValue || '');
  const [errorMsg, setError] = useState();
  const [displayMode, setDisplayMode] = useState('normal'); // 'normal', 'history', 'autocomplete'
  const [displayContent, setDisplayContent] = useState('');
 
  // Initialize history handler
- const historyHandler = useMemo(() => config.historyHandler ?? new EphemeralHistory(), [config.historyHandler]);
+ const historyHandler = useMemo(() => configHistoryHandler ?? new EphemeralHistory(), [configHistoryHandler]);
 
  const prefix = usePrefix({status, theme});
 
  const autoCompleter = useMemo(() => {
-  if (config.autoCompletion) {
+  if (autoCompletion) {
    return async (line) => {
-    const commands = await config.autoCompletion(line);
+    const commands = await autoCompletion(line);
     return autoCompleterFormatter(line, commands);
    };
   }
   return () => ({match: '', matches: []});
- }, [config.autoCompletion]);
+ }, [autoCompletion]);
 
  useKeypress(async (key, rl) => {
   // Ignore keypress while our prompt is doing other processing
@@ -149,9 +171,9 @@ export default createPrompt((config, done) => {
   }
 
   // Call onBeforeKeyPress if provided
-  if (config.onBeforeKeyPress) {
+  if (onBeforeKeyPress) {
    try {
-    config.onBeforeKeyPress({key});
+    onBeforeKeyPress({key});
    } catch (err) {
     console.error('Error in onBeforeKeyPress:', err);
    }
@@ -164,11 +186,11 @@ export default createPrompt((config, done) => {
 
    // Validate input
    let isValid = true;
-   if (config.required && !answer) {
+   if (required && !answer) {
     isValid = 'You must provide a value';
-   } else if (config.validate) {
+   } else if (validate) {
     try {
-     isValid = await config.validate(answer);
+     isValid = await validate(answer);
     } catch (err) {
      isValid = 'Validation error';
     }
@@ -215,14 +237,14 @@ export default createPrompt((config, done) => {
    let line = value.replace(/^ +/, '').replace(/\t/, '').replace(/ +/g, ' ');
    try {
     let ac;
-    if (isAsyncFunc(config.autoCompletion)) {
+    if (isAsyncFunc(autoCompletion)) {
      ac = await autoCompleter(line);
     } else {
      ac = autoCompleter(line);
     }
 
     if (ac.match && ac.match !== line) {
-     const newValue = config.onBeforeRewrite ? config.onBeforeRewrite(ac.match) : ac.match;
+     const newValue = onBeforeRewrite ? onBeforeRewrite(ac.match) : ac.match;
      setValue(newValue);
      rl.line = newValue;
      rl.cursor = newValue.length;
@@ -230,16 +252,16 @@ export default createPrompt((config, done) => {
      setDisplayContent('');
     } else if (ac.matches && ac.matches.length > 0) {
      // Display autocompletion suggestions
-     const promptMessage = config.autocompletePrompt || chalk.red('>> ') + chalk.grey('Available commands:');
+     const promptMessage = autocompletePrompt || chalk.red('>> ') + chalk.grey('Available commands:');
      const formattedList = formatList(
-      config.short
-       ? (typeof config.short === 'function'
-        ? config.short(line, ac.matches)
+      shortConfig
+       ? (typeof shortConfig === 'function'
+        ? shortConfig(line, ac.matches)
         : short(line, ac.matches))
        : ac.matches,
-      config.maxSize,
-      config.ellipsize,
-      config.ellipsis
+      maxSize,
+      ellipsize,
+      ellipsis
      );
      setDisplayMode('autocomplete');
      setDisplayContent(`${promptMessage}\n${formattedList}`);
@@ -282,24 +304,24 @@ export default createPrompt((config, done) => {
   }
  });
 
- const message = theme.style.message(config.message, status);
+ const messageText = theme.style.message(message, status);
 
  let formattedValue = value;
- if (typeof config.transformer === 'function') {
+ if (typeof transformer === 'function') {
   try {
-   formattedValue = config.transformer(value, {}, {isFinal: status === 'done'});
+   formattedValue = transformer(value, {}, {isFinal: status === 'done'});
   } catch (err) {
    console.error('Error in transformer function:', err);
   }
  } else if (status === 'done') {
-  formattedValue = config.noColorOnAnswered
+  formattedValue = noColorOnAnswered
    ? value
-   : chalk[config.colorOnAnswered || 'cyan'](value);
+   : chalk[colorOnAnswered || 'cyan'](value);
  }
 
  let defaultStr = '';
- if (config.default && status !== 'done' && !value) {
-  defaultStr = theme.style.defaultAnswer(config.default);
+ if (defaultValue && status !== 'done' && !value) {
+  defaultStr = theme.style.defaultAnswer(defaultValue);
  }
 
  let error = '';
@@ -308,7 +330,7 @@ export default createPrompt((config, done) => {
  }
 
  // Build the display output
- const mainLine = [prefix, message, defaultStr, formattedValue]
+ const mainLine = [prefix, messageText, defaultStr, formattedValue]
  .filter((v) => v !== undefined && v !== '')
  .join(' ');
 
