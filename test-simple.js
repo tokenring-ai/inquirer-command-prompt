@@ -1,13 +1,15 @@
-import commandPrompt, { setGlobalConfig } from './index.js';
+import commandPrompt from './index.js';
 
-async function testBasicFunctionality() {
   console.log('Testing basic command prompt functionality...');
   
   try {
     // Test 1: Basic prompt
     console.log('\n1. Testing basic prompt (type "hello" and press Enter):');
     const answer1 = await commandPrompt({
-      message: 'Enter a command:',
+     onCtrlEnd: (line) => {
+      return line.toUpperCase(); // Convert to uppercase on Ctrl+End
+     },
+     message: 'Enter a command:',
       context: 'test1'
     });
     console.log(`You entered: "${answer1}"`);
@@ -15,6 +17,9 @@ async function testBasicFunctionality() {
     // Test 2: With validation
     console.log('\n2. Testing validation (must contain "test"):');
     const answer2 = await commandPrompt({
+      onCtrlEnd: (line) => {
+       return line.toUpperCase(); // Convert to uppercase on Ctrl+End
+      },
       message: 'Enter something with "test":',
       context: 'test2',
       validate: (input) => {
@@ -26,7 +31,10 @@ async function testBasicFunctionality() {
     // Test 3: With autocompletion
     console.log('\n3. Testing autocompletion (press TAB to see suggestions):');
     const answer3 = await commandPrompt({
-      message: 'Enter a command (try "f" + TAB):',
+     onCtrlEnd: (line) => {
+      return line.toUpperCase(); // Convert to uppercase on Ctrl+End
+     },
+     message: 'Enter a command (try "f" + TAB):',
       context: 'test3',
       autoCompletion: ['foo', 'bar', 'foobar', 'fizz', 'buzz']
     });
@@ -35,7 +43,10 @@ async function testBasicFunctionality() {
     // Test 4: History navigation (use up/down arrows)
     console.log('\n4. Testing history (use up/down arrows to navigate previous commands):');
     const answer4 = await commandPrompt({
-      message: 'Enter a command (try up/down arrows):',
+     onCtrlEnd: (line) => {
+      return line.toUpperCase(); // Convert to uppercase on Ctrl+End
+     },
+     message: 'Enter a command (try up/down arrows):',
       context: 'test3' // Same context as test 3 to share history
     });
     console.log(`You entered: "${answer4}"`);
@@ -49,13 +60,3 @@ async function testBasicFunctionality() {
       console.error('Test failed:', error);
     }
   }
-}
-
-// Set global config for testing
-setGlobalConfig({
-  onCtrlEnd: (line) => {
-    return line.toUpperCase(); // Convert to uppercase on Ctrl+End
-  }
-});
-
-testBasicFunctionality();

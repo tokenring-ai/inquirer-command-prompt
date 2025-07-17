@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import commandPrompt, { setGlobalConfig } from './index.js';
+import commandPrompt from './index.js';
 
 console.log('🧪 Testing @token-ring/inquirer-command-prompt');
 console.log('='.repeat(50));
@@ -12,19 +12,6 @@ try {
   console.log('✓ Function is callable:', typeof commandPrompt === 'function');
 } catch (error) {
   console.error('❌ Import failed:', error.message);
-  process.exit(1);
-}
-
-// Test 2: Global config
-console.log('\n✅ Test 2: Global configuration');
-try {
-  setGlobalConfig({
-    history: { save: false, limit: 10 },
-    onCtrlEnd: (line) => line.toUpperCase()
-  });
-  console.log('✓ Global config set successfully');
-} catch (error) {
-  console.error('❌ Global config failed:', error.message);
   process.exit(1);
 }
 

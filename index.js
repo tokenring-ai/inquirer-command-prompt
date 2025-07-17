@@ -1,16 +1,9 @@
 import chalk from 'chalk';
-import {
- createPrompt,
- useState,
- useKeypress,
- usePrefix,
- isEnterKey,
- isUpKey,
- isDownKey,
- makeTheme,
-} from '@inquirer/core';
-import DefaultHistory from './DefaultHistory.js';
-import { formatIndex, formatList, isAsyncFunc, short } from './helpers.js';
+import {createPrompt, isDownKey, isEnterKey, isUpKey, makeTheme, useKeypress, usePrefix, useState,} from '@inquirer/core';
+
+import EphemeralHistory from './EphemeralHistory.js';
+
+import {formatIndex, formatList, isAsyncFunc, short} from './helpers.js';
 
 /**
  * @typedef {Object} AutoCompleterResult
@@ -19,23 +12,8 @@ import { formatIndex, formatList, isAsyncFunc, short } from './helpers.js';
  */
 
 /**
- * @typedef {Object} HistoryConfig
- * @property {boolean} [save] - Whether to save history to a file
- * @property {string} [folder] - Folder to save history file
- * @property {number} [limit] - Maximum number of history entries
- * @property {string[]} [blacklist] - Commands to exclude from history
- * @property {string} [fileName] - Name of the history file
- */
-
-/**
- * @typedef {Object} GlobalConfig
- * @property {HistoryConfig} [history] - History configuration
- * @property {Function} [onCtrlEnd] - Function to call on Ctrl+End
- */
-
-/**
  * @typedef {Object} HistoryHandler
- * @property {Function} init - Initialize history for a context
+ * @property {Function} init - Initialize history
  * @property {Function} add - Add a command to history
  * @property {Function} getPrevious - Get previous command from history
  * @property {Function} getNext - Get next command from history
@@ -46,13 +24,10 @@ import { formatIndex, formatList, isAsyncFunc, short } from './helpers.js';
 /**
  * @typedef {Object} CommandPromptConfig
  * @property {string} message - The prompt message
- * @property {string} [context] - Context for history and autocompletion
  * @property {HistoryHandler} [historyHandler] - Custom history handler
- * @property {HistoryConfig} [history] - History configuration
- * @property {Function|Array<string>} [autoCompletion] - Auto-completion function or array
+ * @property {(line) => Promise<string[]> | string[]} [autoCompletion] - Auto-completion function or array
  * @property {Function} [transformer] - Transform the displayed value
  * @property {Function} [validate] - Validate the input
- * @property {string} [default] - Default value
  * @property {boolean} [required] - Whether input is required
  * @property {Function} [onBeforeKeyPress] - Called before each keypress
  * @property {Function} [onBeforeRewrite] - Called before rewriting the line
@@ -67,19 +42,66 @@ import { formatIndex, formatList, isAsyncFunc, short } from './helpers.js';
  * @property {Object} [theme] - Theme configuration
  */
 
-/** @type {Object.<string, Function>} */
-const autoCompleters = {};
-
-/** @type {GlobalConfig} */
-let globalConfig = {};
 
 /**
- * Set global configuration
- * @param {GlobalConfig} config - Global configuration
+ * Format auto-completion results
+ * @param {string} line - The current input line
+ * @param {Array<string|Object>} cmds - Array of possible completions
+ * @returns {AutoCompleterResult} Formatted auto-completion result
  */
-export function setGlobalConfig(config) {
- globalConfig = { ...globalConfig, ...config };
+function autoCompleterFormatter(line, cmds) {
+ if (!Array.isArray(cmds)) {
+  return {match: line, matches: []};
+ }
+
+ let max = 0;
+ let options = {filter: str => str};
+
+ // First element in cmds can be an object with special instructions
+ if (typeof cmds[0] === 'object' && cmds[0] !== null && !Array.isArray(cmds[0])) {
+  const f = cmds[0].filter;
+  if (typeof f === 'function') {
+   options.filter = f;
+  }
+  cmds = cmds.slice(1);
+ }
+
+ const filteredCmds = cmds.reduce((sum, el) => {
+  const sanitizedLine = line.replace(/[\\.+*?^$\[\](){}\/'#:!=|]/ig, '\\$&');
+  if (RegExp(`^${sanitizedLine}`).test(el)) {
+   sum.push(el);
+   max = Math.max(max, el.length);
+  }
+  return sum;
+ }, []);
+
+ if (filteredCmds.length > 1) {
+  let commonStr = '';
+  LOOP: for (let i = line.length; i < max; i++) {
+   let c = null;
+   for (let l of filteredCmds) {
+    if (!l[i]) {
+     break LOOP;
+    } else if (!c) {
+     c = l[i];
+    } else if (c !== l[i]) {
+     break LOOP;
+    }
+   }
+   commonStr += c;
+  }
+  if (commonStr) {
+   return {match: options.filter(line + commonStr)};
+  } else {
+   return {matches: filteredCmds};
+  }
+ } else if (filteredCmds.length === 1) {
+  return {match: options.filter(filteredCmds[0])};
+ } else {
+  return {match: options.filter(line)};
+ }
 }
+
 
 /**
  * Command prompt with history and auto-completion built on @inquirer/core
@@ -95,111 +117,19 @@ export default createPrompt((config, done) => {
  const [displayContent, setDisplayContent] = useState('');
 
  // Initialize history handler
- const historyHandler = config.historyHandler ?? new DefaultHistory(config.history);
- const context = config.context ?? '_default';
- historyHandler.init(context);
+ const historyHandler = useMemo(() => config.historyHandler ?? new EphemeralHistory(), [config.historyHandler]);
 
- const prefix = usePrefix({ status, theme });
+ const prefix = usePrefix({status, theme});
 
- /**
-  * Initialize auto-completion for a context
-  * @param {string} context - The context to initialize auto-completion for
-  * @param {Function|Array<string>|null} autoCompletion - The auto-completion function or array
-  */
- const initAutoCompletion = (context, autoCompletion) => {
-  if (!autoCompleters[context]) {
-   if (isAsyncFunc(autoCompletion)) {
-    autoCompleters[context] = async (l) => asyncAutoCompleter(l, autoCompletion);
-   } else if (autoCompletion) {
-    autoCompleters[context] = (l) => autoCompleter(l, autoCompletion);
-   } else {
-    autoCompleters[context] = () => ({ match: '', matches: [] });
-   }
+ const autoCompleter = useMemo(() => {
+  if (config.autoCompletion) {
+   return async (line) => {
+    const commands = await config.autoCompletion(line);
+    return autoCompleterFormatter(line, commands);
+   };
   }
- };
-
- /**
-  * Process async auto-completion
-  * @param {string} line - The current input line
-  * @param {Function} cmds - Async function that returns auto-completion commands
-  * @returns {Promise<AutoCompleterResult>} Auto-completion result
-  */
- const asyncAutoCompleter = async (line, cmds) => {
-  const commands = await cmds(line);
-  return autoCompleterFormatter(line, commands);
- };
-
- /**
-  * Process synchronous auto-completion
-  * @param {string} line - The current input line
-  * @param {Function|Array<string>} cmds - Function that returns commands or array of commands
-  * @returns {AutoCompleterResult} Auto-completion result
-  */
- const autoCompleter = (line, cmds) => {
-  if (typeof cmds === 'function') {
-   cmds = cmds(line);
-  }
-  return autoCompleterFormatter(line, cmds);
- };
-
- /**
-  * Format auto-completion results
-  * @param {string} line - The current input line
-  * @param {Array<string|Object>} cmds - Array of possible completions
-  * @returns {AutoCompleterResult} Formatted auto-completion result
-  */
- const autoCompleterFormatter = (line, cmds) => {
-  if (!Array.isArray(cmds)) {
-   return { match: line, matches: [] };
-  }
-
-  let max = 0;
-  let options = { filter: str => str };
-
-  // First element in cmds can be an object with special instructions
-  if (typeof cmds[0] === 'object' && cmds[0] !== null && !Array.isArray(cmds[0])) {
-   const f = cmds[0].filter;
-   if (typeof f === 'function') {
-    options.filter = f;
-   }
-   cmds = cmds.slice(1);
-  }
-
-  const filteredCmds = cmds.reduce((sum, el) => {
-   const sanitizedLine = line.replace(/[\\.+*?^$\[\](){}\/'#:!=|]/ig, '\\$&');
-   if (RegExp(`^${sanitizedLine}`).test(el)) {
-    sum.push(el);
-    max = Math.max(max, el.length);
-   }
-   return sum;
-  }, []);
-
-  if (filteredCmds.length > 1) {
-   let commonStr = '';
-   LOOP: for (let i = line.length; i < max; i++) {
-    let c = null;
-    for (let l of filteredCmds) {
-     if (!l[i]) {
-      break LOOP;
-     } else if (!c) {
-      c = l[i];
-     } else if (c !== l[i]) {
-      break LOOP;
-     }
-    }
-    commonStr += c;
-   }
-   if (commonStr) {
-    return { match: options.filter(line + commonStr) };
-   } else {
-    return { matches: filteredCmds };
-   }
-  } else if (filteredCmds.length === 1) {
-   return { match: options.filter(filteredCmds[0]) };
-  } else {
-   return { match: options.filter(line) };
-  }
- };
+  return () => ({match: '', matches: []});
+ }, [config.autoCompletion]);
 
  useKeypress(async (key, rl) => {
   // Ignore keypress while our prompt is doing other processing
@@ -221,18 +151,15 @@ export default createPrompt((config, done) => {
   // Call onBeforeKeyPress if provided
   if (config.onBeforeKeyPress) {
    try {
-    config.onBeforeKeyPress({ key });
+    config.onBeforeKeyPress({key});
    } catch (err) {
     console.error('Error in onBeforeKeyPress:', err);
    }
   }
 
-  // Initialize autocompleter for current context
-  initAutoCompletion(context, config.autoCompletion);
-
   if (isEnterKey(key)) {
    // Use the current value state, which should be synced with rl.line
-   const answer = value || config.default || '';
+   const answer = value || '';
    setStatus('loading');
 
    // Validate input
@@ -249,7 +176,7 @@ export default createPrompt((config, done) => {
 
    if (isValid === true) {
     // Add to history
-    historyHandler.add(context, answer);
+    historyHandler.add(answer);
     setStatus('done');
     setDisplayMode('normal');
     setDisplayContent('');
@@ -261,22 +188,23 @@ export default createPrompt((config, done) => {
     rl.line = value;
     rl.cursor = value.length;
    }
-  } else if (isUpKey(key) || isDownKey(key)) {
-   // Handle history navigation
-   if (isUpKey(key)) {
-    const previousCommand = historyHandler.getPrevious(context);
-    if (previousCommand !== undefined) {
-     setValue(previousCommand);
-     rl.line = previousCommand;
-     rl.cursor = previousCommand.length;
-    }
-   } else if (isDownKey(key)) {
-    const nextCommand = historyHandler.getNext(context);
-    const lineValue = nextCommand !== undefined ? nextCommand : '';
-    setValue(lineValue);
-    rl.line = lineValue;
-    rl.cursor = lineValue.length;
+  } else if (isUpKey(key)) {
+   const previousCommand = historyHandler.getPrevious();
+   if (previousCommand !== undefined) {
+    setValue(previousCommand);
+    rl.line = previousCommand;
+    rl.cursor = previousCommand.length;
    }
+   if (displayMode !== 'normal') {
+    setDisplayMode('normal');
+    setDisplayContent('');
+   }
+  } else if (isDownKey(key)) {
+   const nextCommand = historyHandler.getNext();
+   const lineValue = nextCommand !== undefined ? nextCommand : '';
+   setValue(lineValue);
+   rl.line = lineValue;
+   rl.cursor = lineValue.length;
    // Clear display mode when navigating history
    if (displayMode !== 'normal') {
     setDisplayMode('normal');
@@ -288,9 +216,9 @@ export default createPrompt((config, done) => {
    try {
     let ac;
     if (isAsyncFunc(config.autoCompletion)) {
-     ac = await autoCompleters[context](line);
+     ac = await autoCompleter(line);
     } else {
-     ac = autoCompleters[context](line);
+     ac = autoCompleter(line);
     }
 
     if (ac.match && ac.match !== line) {
@@ -325,68 +253,25 @@ export default createPrompt((config, done) => {
     rl.cursor = value.length;
    }
   } else if (key.name === 'right' && key.shift) {
-   // Handle history display or recall
-   if (key.ctrl) {
-    // History recall by number if current line is a number
-    const lineAsIndex = parseInt(value, 10);
-    if (!isNaN(lineAsIndex)) {
-     const historyEntries = historyHandler.getAll(context);
-     if (lineAsIndex >= 0 && lineAsIndex < historyEntries.length) {
-      const newValue = historyEntries[lineAsIndex];
-      setValue(newValue);
-      rl.line = newValue;
-      rl.cursor = newValue.length;
-     } else {
-      setValue('');
-      rl.line = '';
-      rl.cursor = 0;
-     }
-    } else {
-     setValue('');
-     rl.line = '';
-     rl.cursor = 0;
-    }
-    setDisplayMode('normal');
-    setDisplayContent('');
-   } else {
-    // Display all history entries
-    const historyEntries = historyHandler.getAll(context);
-    const historyConfig = historyHandler.config || {};
-    const historyLimit = historyConfig.limit !== undefined ? historyConfig.limit : 100;
+   // Display all history entries
+   const historyEntries = historyHandler.getAll();
+   const historyConfig = historyHandler.config || {};
+   const historyLimit = historyConfig.limit !== undefined ? historyConfig.limit : 100;
 
-    let historyDisplay = chalk.bold('History:');
-    if (historyEntries.length === 0) {
-     historyDisplay += '\n' + chalk.grey('  (No history)');
-    } else {
-     for (let i = 0; i < historyEntries.length; i++) {
-      historyDisplay += `\n${chalk.grey(formatIndex(i, historyLimit))}  ${historyEntries[i]}`;
-     }
-    }
-
-    setDisplayMode('history');
-    setDisplayContent(historyDisplay);
-    setValue('');
-    rl.line = '';
-    rl.cursor = 0;
-   }
-  } else if (key.name === 'end' && key.ctrl) {
-   // Handle Ctrl+End
-   if (globalConfig && typeof globalConfig.onCtrlEnd === 'function') {
-    try {
-     const newValue = globalConfig.onCtrlEnd(value);
-     setValue(newValue);
-     rl.line = newValue;
-     rl.cursor = newValue.length;
-    } catch (err) {
-     console.error('Error in globalConfig.onCtrlEnd:', err);
-    }
+   let historyDisplay = chalk.bold('History:');
+   if (historyEntries.length === 0) {
+    historyDisplay += '\n' + chalk.grey('  (No history)');
    } else {
-    setValue('');
-    rl.line = '';
-    rl.cursor = 0;
+    for (let i = 0; i < historyEntries.length; i++) {
+     historyDisplay += `\n${chalk.grey(formatIndex(i, historyLimit))}  ${historyEntries[i]}`;
+    }
    }
-   setDisplayMode('normal');
-   setDisplayContent('');
+
+   setDisplayMode('history');
+   setDisplayContent(historyDisplay);
+   setValue('');
+   rl.line = '';
+   rl.cursor = 0;
   } else {
    // For all other keys, clear any error and display mode
    setError(undefined);
@@ -402,7 +287,7 @@ export default createPrompt((config, done) => {
  let formattedValue = value;
  if (typeof config.transformer === 'function') {
   try {
-   formattedValue = config.transformer(value, {}, { isFinal: status === 'done' });
+   formattedValue = config.transformer(value, {}, {isFinal: status === 'done'});
   } catch (err) {
    console.error('Error in transformer function:', err);
   }
