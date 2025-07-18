@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import {createPrompt, isDownKey, isEnterKey, isUpKey, makeTheme, useKeypress, usePrefix, useState, useMemo} from '@inquirer/core';
+import {createPrompt, isEnterKey, makeTheme, useKeypress, usePrefix, useState, useMemo} from '@inquirer/core';
 
 import EphemeralHistory from './EphemeralHistory.js';
 const defaultHistory = new EphemeralHistory();
@@ -87,16 +87,26 @@ export default createPrompt((config, done) => {
   maxSize,
   ellipsize,
   ellipsis,
-  message
+  message,
  } = config;
 
  const theme = makeTheme({}, themeConfig);
  const [status, setStatus] = useState('idle');
- const [value, setValue] = useState(defaultValue || '');
+ const [lines, setLines] = useState({
+  activeLines: defaultValue ? [defaultValue] : [''],
+  inactiveLines: [],
+  displayContent: null
+ });
 
- const [displayContent, setDisplayContent] = useState('');
+ const [multiLine, setMultiLine] = useState(false);
 
  const prefix = usePrefix({status, theme});
+
+ const {
+  activeLines,
+  inactiveLines,
+  displayContent,
+ } = lines;
 
  const autoCompleter = useMemo(() => {
   if (autoCompletion) {
@@ -119,21 +129,78 @@ export default createPrompt((config, done) => {
    return;
   }
 
-  function resetValue(newValue, displayContent = '') {
-   rl.line = newValue;
-   rl.cursor = newValue.length;
-   setValue(newValue);
-   setDisplayContent(displayContent);
+  // Multi-line toggle: meta+M
+  if ((key.name === 'm' || key.name === 'M') && key.meta) {
+   if (multiLine) {
+    // Exit multi-line mode
+    setMultiLine(false);
+    setLines({
+     activeLines: [activeLines[0]],
+     inactiveLines: [],
+    });
+   } else {
+    // Enter multi-line mode
+    setMultiLine(true);
+   }
+   return;
+  }
+
+  if (multiLine) {
+   // Handle backspace in multi-line mode
+   if (key.name === 'backspace') {
+    // If current line is empty and we're not on the first line, delete the current line
+    if (activeLines.length > 1 && activeLines[activeLines.length - 1] === '') {
+     rl.line = activeLines[activeLines.length - 2];
+     rl.cursor = activeLines[activeLines.length - 2].length;
+     setLines({
+      activeLines: activeLines.slice(0, activeLines.length - 1),
+      inactiveLines,
+     });
+     return;
+    }
+    // Otherwise, let the default backspace behavior handle character deletion
+   }
+
+   // Handle up/down arrow navigation in multi-line mode
+   if (key.name === 'up') {
+    if (activeLines.length > 0) {
+     setLines({
+      inactiveLines: [activeLines.pop(), ...inactiveLines],
+      activeLines: [...activeLines]
+     });
+    }
+    return;
+   }
+
+   if (key.name === 'down') {
+    if (inactiveLines.length > 0) {
+     setLines({
+      activeLines: [...activeLines, inactiveLines.shift()], 
+      inactiveLines: [...inactiveLines]
+     });
+    }
+    return;
+   }
+
+   // In multi-line mode, handle Enter specially
+   if (isEnterKey(key) && !key.meta) {
+    rl.cursor = 0;
+    setLines({
+     activeLines: [...activeLines, ''],
+     inactiveLines
+    });
+    return;
+   }
   }
 
   if (isEnterKey(key)) {
-   // Use the current value state, which should be synced with rl.line
-   const answer = value || '';
-   setStatus('loading');
+   const answer = [...activeLines, ...inactiveLines].join('\n');
+   rl.cursor = activeLines[activeLines.length - 1].length;
+   rl.line = activeLines[activeLines.length - 1];
 
-   // Validate input
+   setStatus('loading');
    let isValid = true;
-   if (required && !answer) {
+   if (required && !answer.trim()) {
     isValid = 'You must provide a value';
    } else if (validate) {
     try {
@@ -142,68 +209,86 @@ export default createPrompt((config, done) => {
      isValid = 'Validation error';
     }
    }
-
    if (isValid === true) {
-    // Add to history
     historyHandler.add(answer);
     setStatus('done');
-    setDisplayContent('');
     done(answer);
    } else {
-    resetValue(
-     value,
-     theme.style.error(typeof isValid === 'string' ? isValid : 'You must provide a valid value')
-    );
+    setLines({
+     activeLines,
+     inactiveLines,
+     displayContent: theme.style.error(typeof isValid === 'string' ? isValid : 'You must provide a valid value')
+    });
     setStatus('idle');
    }
-  } else if (key.name === 'up') {
+   return;
+  }
+
+
+  if (key.name === 'up') {
    const previousCommand = historyHandler.getPrevious();
-   resetValue(previousCommand ?? rl.line);
+   if (previousCommand) {
+    setLines(
+     {
+      activeLines: [previousCommand],
+      inactiveLines: []
+     },
+    );
+   }
   } else if (key.name === 'down') {
    const nextCommand = historyHandler.getNext();
-   resetValue(nextCommand ?? '');
-  } else if (key.name === 'tab') {
-   // Handle tab completion
-   let line = value.replace(/^ +/, '').replace(/\t/, '').replace(/ +/g, ' ');
-
-   let matches = await autoCompleter(line) ?? [];
-
-   if (matches.length === 0) {
-    resetValue(
-     value,
-     chalk.red('>> ') + chalk.grey('No available commands')
+   if (nextCommand) {
+    setLines(
+     {
+      activeLines: [nextCommand],
+      inactiveLines: []
+     },
     );
-   } else if (matches.length === 1) {
-    resetValue(matches[0]);
-   } else {
-    // Keep the current value
-    rl.line = value;
-    rl.cursor = value.length;
+   }
+  } else if (key.name === 'tab') {
+   const value = activeLines[activeLines.length - 1];
+   rl.cursor = value.length;
+   rl.line = value;
 
+   const trimmedValue = value.trim();
+   // Handle tab completion
+   //let line = (value.length > 1 ? value.join('\n') : value[0] || '').replace(/^ +/, '').replace(/\t/, '').replace(/ +/g, ' ');
+   let matches = await autoCompleter(trimmedValue) ?? [];
+   if (matches.length === 0) {
+    setLines({
+      activeLines,
+      inactiveLines,
+      displayContent: chalk.grey('No available commands')
+     });
+   } else if (matches.length === 1) {
+    setLines({
+     activeLines: [matches[0]],
+     inactiveLines: [],
+    });
+   } else {
     // Display autocompletion suggestions
-    const promptMessage = autocompletePrompt || chalk.red('>> ') + chalk.grey('Available commands:');
+    const promptMessage = autocompletePrompt || chalk.grey('Available commands:');
     const formattedList = formatList(
      shortConfig
       ? (typeof shortConfig === 'function'
-       ? shortConfig(line, matches)
-       : short(line, matches))
+       ? shortConfig(value, matches)
+       : short(value, matches))
       : matches,
      maxSize,
      ellipsize,
      ellipsis
     );
-
-    resetValue(
-     value,
-     `${promptMessage}\n${formattedList}`
-    );
+    setLines({
+     activeLines,
+     inactiveLines,
+     displayContent: `${promptMessage}\n${formattedList}`
+    });
    }
   } else if (key.name === 'right' && key.shift) {
    // Display all history entries
    const historyEntries = historyHandler.getAll();
    const historyConfig = historyHandler.config || {};
    const historyLimit = historyConfig.limit !== undefined ? historyConfig.limit : 100;
-
    let historyDisplay = chalk.bold('History:');
    if (historyEntries.length === 0) {
     historyDisplay += '\n' + chalk.grey('  (No history)');
@@ -212,34 +297,59 @@ export default createPrompt((config, done) => {
      historyDisplay += `\n${chalk.grey(formatIndex(i, historyLimit))}  ${historyEntries[i]}`;
     }
    }
-
-   resetValue(
-    value,
-    historyDisplay
-   );
+   
+   setLines({
+    activeLines,
+    inactiveLines,
+    displayContent: historyDisplay
+   });
   } else {
-   // Update the value without transformation - transformer is only for display
-   setValue(rl.line);
-   setDisplayContent('');
-   }
+   activeLines[activeLines.length - 1] = rl.line;
+   setLines({
+    activeLines: [...activeLines],
+    inactiveLines,
+   });
+  }
  });
 
  const messageText = theme.style.message(message, status);
 
- // Apply transformer only for display purposes
- const displayValue = transformer ? transformer(value) : value;
- let formattedValue = theme.style.answer(displayValue);
+ let activeLinesStr = activeLines.join('\n');
+ if (transformer) {
+  activeLinesStr = transformer(activeLinesStr);
+ }
+
+ activeLinesStr = theme.style.answer(activeLinesStr);
+
+ if (activeLines.length > 1 && activeLines[activeLines.length - 1] === '') {
+  activeLinesStr += '\r';
+ }
+
+ let inactiveLinesStr = inactiveLines.join('\n');
+ if (transformer) {
+  inactiveLinesStr = transformer(inactiveLinesStr);
+ }
+
+ if (inactiveLinesStr) inactiveLinesStr = theme.style.answer(inactiveLinesStr) + '\n';
 
  let defaultStr = '';
- if (defaultValue && status !== 'done' && !value) {
+ if (defaultValue && status !== 'done' && ! activeLines?.[0]?.length > 0 && !multiLine) {
   defaultStr = theme.style.defaultAnswer(defaultValue);
  }
 
+
  // Build the display output
- const mainLine = [prefix, messageText, defaultStr, formattedValue]
+ const mainLine = [prefix, messageText, defaultStr, activeLinesStr]
  .filter((v) => v !== undefined && v !== '')
  .join(' ');
 
+ if (multiLine) {
+  return [
+   mainLine,
+   inactiveLinesStr +
+   chalk.cyan('Multi-line mode enabled. Press Meta+Enter to submit, Enter for new line.')
+  ];
+ }
 
- return [mainLine, displayContent];
+ return [mainLine, inactiveLinesStr + (displayContent ?? '')];
 });

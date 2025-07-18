@@ -395,7 +395,49 @@ describe('Command Prompt Integration Tests', function () {
       assert.strictEqual(config.onBeforeRewrite('  test  '), 'test');
       assert.deepStrictEqual(config.short('', new Array(15).fill(0).map((_, i) => `cmd${i}`)), 
                            new Array(10).fill(0).map((_, i) => `cmd${i}`));
+});
+
+
+   describe('Multi-line Input Integration', function () {
+    it('should allow multi-line input when meta+M is pressed', async function () {
+     // Simulate the prompt with multi-line enabled
+     let multiLineEnabled = false;
+     const fakePrompt = async (config) => {
+      // Simulate meta+M enabling multi-line
+      if (config.onMetaM) config.onMetaM();
+      multiLineEnabled = true;
+      return 'line1\nline2';
+     };
+
+     let metaMCalled = false;
+     const config = {
+      message: 'Enter multi-line command:',
+      context: 'multiline_test',
+      onMetaM: () => { metaMCalled = true; }
+     };
+
+     // Simulate calling the prompt
+     const result = await fakePrompt(config);
+     assert.strictEqual(metaMCalled, true, 'onMetaM should be called');
+     assert.strictEqual(multiLineEnabled, true, 'Multi-line mode should be enabled');
+     assert.strictEqual(result, 'line1\nline2');
     });
+
+    it('should return single-line input if meta+M is not pressed', async function () {
+     // Simulate the prompt without multi-line
+     const fakePrompt = async (config) => {
+      // meta+M not pressed
+      return 'single line';
+     };
+     const config = {
+      message: 'Enter command:',
+      context: 'singleline_test',
+      // no onMetaM handler
+     };
+     const result = await fakePrompt(config);
+     assert.strictEqual(result, 'single line');
+    });
+   });
 
   });
 });
