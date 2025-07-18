@@ -14,3 +14,4 @@ coverage
 /log
 yarn.lock
 /inquirer-command-prompt-history.json
+/.tokenring/coder-database.sqlite

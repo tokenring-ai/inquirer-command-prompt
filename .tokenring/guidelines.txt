@@ -1,0 +1,9 @@
+- The project uses npm for package management
+- The project is in javascript with JSDoc documentation, not typescript
+- The project uses ES modules
+- Policy requires that integration tests are written first before code, and kept up to date, testing every piece of source code written.
+- Integration tests should be used instead unit tests.
+- Code should be written after integration tests
+- Documentation should be updated after code is written
+- To run the package unit tests, execute npm run test using the shell tool
+- To run the package lint tests, execute npm run lint using the shell tool

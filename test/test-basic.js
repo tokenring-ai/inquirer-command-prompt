@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import commandPrompt from './index.js';
+import commandPrompt from '../index.js';
 
 console.log('🧪 Testing @token-ring/inquirer-command-prompt');
 console.log('='.repeat(50));
