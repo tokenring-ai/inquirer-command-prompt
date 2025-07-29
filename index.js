@@ -234,6 +234,8 @@ export default createPrompt((config, done) => {
       inactiveLines: []
      },
     );
+    rl.line = previousCommand;
+    rl.cursor = previousCommand.length;
    }
   } else if (key.name === 'down') {
    const nextCommand = historyHandler.getNext();
@@ -244,6 +246,8 @@ export default createPrompt((config, done) => {
       inactiveLines: []
      },
     );
+    rl.line = nextCommand;
+    rl.cursor = nextCommand.length;
    }
   } else if (key.name === 'tab') {
    const value = activeLines[activeLines.length - 1];
