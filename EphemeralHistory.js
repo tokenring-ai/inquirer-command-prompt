@@ -15,6 +15,7 @@ class EphemeralHistory {
 
   /** @type {number} Maps context to current index in its history array */
   this.historyIndex = -1;
+  this.currentLine = '';
 
   /**
    * @type {Object} Configuration options
@@ -58,6 +59,14 @@ class EphemeralHistory {
  }
 
  /**
+  * Set the current line of input, for saving/restoring when navigating history
+  * @param {string} line - The current line of input
+  */
+ setCurrent(line) {
+  this.currentLine = line;
+ }
+
+ /**
   * Get the previous command in history
   * @returns {string|undefined} The previous command or undefined if at beginning
   */
@@ -71,7 +80,7 @@ class EphemeralHistory {
 
  /**
   * Get the next command in history
-  * @returns {string|undefined} The next command or undefined if at end
+  * @returns {string|undefined} The next command or the saved current line
   */
  getNext() {
   if (this.historyIndex < this.history.length - 1) {
@@ -80,7 +89,7 @@ class EphemeralHistory {
   } else if (this.historyIndex === this.history.length - 1) {
    // If at the last item, increment index to point "after" it (for new input)
    this.historyIndex++;
-   return undefined; // Indicates user should see an empty line
+   return this.currentLine; // Return the saved current line
   }
   return undefined; // Already at the "new input" line or no history
  }

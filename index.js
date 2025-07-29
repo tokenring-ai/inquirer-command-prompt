@@ -226,6 +226,7 @@ export default createPrompt((config, done) => {
 
 
   if (key.name === 'up') {
+   historyHandler.setCurrent(rl.line);
    const previousCommand = historyHandler.getPrevious();
    if (previousCommand) {
     setLines(
@@ -238,6 +239,7 @@ export default createPrompt((config, done) => {
     rl.cursor = previousCommand.length;
    }
   } else if (key.name === 'down') {
+   historyHandler.setCurrent(rl.line);
    const nextCommand = historyHandler.getNext();
    if (nextCommand) {
     setLines(

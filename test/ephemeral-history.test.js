@@ -105,7 +105,7 @@ describe('EphemeralHistory', function () {
       assert.strictEqual(history.historyIndex, 2);
       
       // Go to new line
-      assert.strictEqual(history.getNext(), undefined);
+      assert.strictEqual(history.getNext(), '');
       assert.strictEqual(history.historyIndex, 3);
       
       // Try to go beyond end
