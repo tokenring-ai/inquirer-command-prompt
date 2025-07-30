@@ -1,43 +1,45 @@
 #!/usr/bin/env node
 
-import commandPrompt from '../index.js';
+import commandPrompt from "../index.js";
 
-console.log('🧪 Testing @token-ring/inquirer-command-prompt');
-console.log('='.repeat(50));
+console.log("🧪 Testing @token-ring/inquirer-command-prompt");
+console.log("=".repeat(50));
 
 // Test 1: Basic functionality
-console.log('\n✅ Test 1: Basic import and function call');
+console.log("\n✅ Test 1: Basic import and function call");
 try {
-  console.log('✓ Import successful');
-  console.log('✓ Function is callable:', typeof commandPrompt === 'function');
+	console.log("✓ Import successful");
+	console.log("✓ Function is callable:", typeof commandPrompt === "function");
 } catch (error) {
-  console.error('❌ Import failed:', error.message);
-  process.exit(1);
+	console.error("❌ Import failed:", error.message);
+	process.exit(1);
 }
 
 // Test 3: Configuration validation
-console.log('\n✅ Test 3: Configuration validation');
+console.log("\n✅ Test 3: Configuration validation");
 try {
-  // Test with minimal config
-  const config1 = { message: 'Test:' };
-  console.log('✓ Minimal config accepted');
-  
-  // Test with full config
-  const config2 = {
-    message: 'Full test:',
-    context: 'test',
-    autoCompletion: ['foo', 'bar'],
-    validate: (input) => input.length > 0,
-    history: { save: false }
-  };
-  console.log('✓ Full config accepted');
+	// Test with minimal config
+	const config1 = { message: "Test:" };
+	console.log("✓ Minimal config accepted");
+
+	// Test with full config
+	const config2 = {
+		message: "Full test:",
+		context: "test",
+		autoCompletion: ["foo", "bar"],
+		validate: (input) => input.length > 0,
+		history: { save: false },
+	};
+	console.log("✓ Full config accepted");
 } catch (error) {
-  console.error('❌ Config validation failed:', error.message);
-  process.exit(1);
+	console.error("❌ Config validation failed:", error.message);
+	process.exit(1);
 }
 
-console.log('\n🎉 All tests passed!');
-console.log('📦 Package is ready for use');
-console.log('\n📖 Usage:');
-console.log('  import commandPrompt from "@token-ring/inquirer-command-prompt";');
+console.log("\n🎉 All tests passed!");
+console.log("📦 Package is ready for use");
+console.log("\n📖 Usage:");
+console.log(
+	'  import commandPrompt from "@token-ring/inquirer-command-prompt";',
+);
 console.log('  const answer = await commandPrompt({ message: ">" });');
