@@ -1,13 +1,13 @@
-import chalk from "chalk";
 import {
 	createPrompt,
 	isEnterKey,
 	makeTheme,
 	useKeypress,
+	useMemo,
 	usePrefix,
 	useState,
-	useMemo,
 } from "@inquirer/core";
+import chalk from "chalk";
 
 import EphemeralHistory from "./EphemeralHistory.js";
 const defaultHistory = new EphemeralHistory();
@@ -263,7 +263,7 @@ export default createPrompt((config, done) => {
 			const trimmedValue = value.trim();
 			// Handle tab completion
 			//let line = (value.length > 1 ? value.join('\n') : value[0] || '').replace(/^ +/, '').replace(/\t/, '').replace(/ +/g, ' ');
-			let matches = (await autoCompleter(trimmedValue)) ?? [];
+			const matches = (await autoCompleter(trimmedValue)) ?? [];
 			if (matches.length === 0) {
 				setLines({
 					activeLines,

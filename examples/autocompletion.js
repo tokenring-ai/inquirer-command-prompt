@@ -3,9 +3,7 @@ import commandPrompt from "../index.js";
 async function runPrompt() {
 	const availableCommands = [
 		{
-			filter: function (str) {
-				return str.replace(/ \[.*$/, "");
-			},
+			filter: (str) => str.replace(/ \[.*$/, ""),
 		},
 		"foo a",
 		"foo b",

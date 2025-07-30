@@ -1,18 +1,18 @@
 import assert from "node:assert";
-import { fileURLToPath } from "node:url";
 import { dirname, resolve as pathResolve } from "node:path";
-import sinon from "sinon";
+import { fileURLToPath } from "node:url";
 import fsExtra from "fs-extra";
+import sinon from "sinon";
 import FileBackedHistory from "../FileBackedHistory.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-describe("FileBackedHistory", function () {
+describe("FileBackedHistory", () => {
 	const TEST_HISTORY_DIR = pathResolve(__dirname, "test_file_backed_history");
 	const TEST_HISTORY_FILE = "test-history.json";
 	const FULL_HISTORY_PATH = pathResolve(TEST_HISTORY_DIR, TEST_HISTORY_FILE);
 
-	beforeEach(async function () {
+	beforeEach(async () => {
 		// Clean up before each test
 		if (await fsExtra.pathExists(TEST_HISTORY_DIR)) {
 			await fsExtra.remove(TEST_HISTORY_DIR);
@@ -20,7 +20,7 @@ describe("FileBackedHistory", function () {
 		await fsExtra.ensureDir(TEST_HISTORY_DIR);
 	});
 
-	afterEach(async function () {
+	afterEach(async () => {
 		sinon.restore();
 		// Clean up after each test
 		if (await fsExtra.pathExists(TEST_HISTORY_DIR)) {
@@ -28,8 +28,8 @@ describe("FileBackedHistory", function () {
 		}
 	});
 
-	describe("Configuration", function () {
-		it("should use default configuration", function () {
+	describe("Configuration", () => {
+		it("should use default configuration", () => {
 			const history = new FileBackedHistory();
 
 			assert.strictEqual(history.config.save, true);
@@ -42,7 +42,7 @@ describe("FileBackedHistory", function () {
 			);
 		});
 
-		it("should accept custom configuration", function () {
+		it("should accept custom configuration", () => {
 			const history = new FileBackedHistory({
 				save: false,
 				folder: "/tmp",
@@ -58,7 +58,7 @@ describe("FileBackedHistory", function () {
 			assert.strictEqual(history.config.fileName, "custom-history.json");
 		});
 
-		it("should update configuration with setConfig", function () {
+		it("should update configuration with setConfig", () => {
 			const history = new FileBackedHistory({
 				folder: TEST_HISTORY_DIR,
 				fileName: TEST_HISTORY_FILE,
@@ -79,8 +79,8 @@ describe("FileBackedHistory", function () {
 		});
 	});
 
-	describe("Adding Commands", function () {
-		it("should add commands to history", function () {
+	describe("Adding Commands", () => {
+		it("should add commands to history", () => {
 			const history = new FileBackedHistory({
 				folder: TEST_HISTORY_DIR,
 				fileName: TEST_HISTORY_FILE,
@@ -94,7 +94,7 @@ describe("FileBackedHistory", function () {
 			assert.strictEqual(history.historyIndex, 2);
 		});
 
-		it("should not add duplicate consecutive commands", function () {
+		it("should not add duplicate consecutive commands", () => {
 			const history = new FileBackedHistory({
 				folder: TEST_HISTORY_DIR,
 				fileName: TEST_HISTORY_FILE,
@@ -113,7 +113,7 @@ describe("FileBackedHistory", function () {
 			]);
 		});
 
-		it("should respect history limit", function () {
+		it("should respect history limit", () => {
 			const history = new FileBackedHistory({
 				folder: TEST_HISTORY_DIR,
 				fileName: TEST_HISTORY_FILE,
@@ -130,7 +130,7 @@ describe("FileBackedHistory", function () {
 			assert.strictEqual(history.historyIndex, 3);
 		});
 
-		it("should ignore blacklisted commands", function () {
+		it("should ignore blacklisted commands", () => {
 			const history = new FileBackedHistory({
 				folder: TEST_HISTORY_DIR,
 				fileName: TEST_HISTORY_FILE,
@@ -147,10 +147,10 @@ describe("FileBackedHistory", function () {
 		});
 	});
 
-	describe("Navigation", function () {
+	describe("Navigation", () => {
 		let history;
 
-		beforeEach(function () {
+		beforeEach(() => {
 			history = new FileBackedHistory({
 				folder: TEST_HISTORY_DIR,
 				fileName: TEST_HISTORY_FILE,
@@ -163,7 +163,7 @@ describe("FileBackedHistory", function () {
 			// History: ['cmd1', 'cmd2', 'cmd3'], index: 3
 		});
 
-		it("should navigate backwards through history", function () {
+		it("should navigate backwards through history", () => {
 			assert.strictEqual(history.getPrevious(), "cmd3");
 			assert.strictEqual(history.historyIndex, 2);
 
@@ -178,7 +178,7 @@ describe("FileBackedHistory", function () {
 			assert.strictEqual(history.historyIndex, 0);
 		});
 
-		it("should navigate forwards through history", function () {
+		it("should navigate forwards through history", () => {
 			// First go back to beginning
 			history.getPrevious(); // cmd3, index: 2
 			history.getPrevious(); // cmd2, index: 1
@@ -200,7 +200,7 @@ describe("FileBackedHistory", function () {
 			assert.strictEqual(history.historyIndex, 3);
 		});
 
-		it("should handle navigation on empty history", function () {
+		it("should handle navigation on empty history", () => {
 			const emptyHistory = new FileBackedHistory({
 				folder: TEST_HISTORY_DIR,
 				fileName: "empty-history.json",
@@ -213,8 +213,8 @@ describe("FileBackedHistory", function () {
 		});
 	});
 
-	describe("Getting All Commands", function () {
-		it("should return copy of all commands", function () {
+	describe("Getting All Commands", () => {
+		it("should return copy of all commands", () => {
 			const history = new FileBackedHistory({
 				folder: TEST_HISTORY_DIR,
 				fileName: TEST_HISTORY_FILE,
@@ -234,7 +234,7 @@ describe("FileBackedHistory", function () {
 			assert.deepStrictEqual(history.history, ["cmd1", "cmd2", "cmd3"]);
 		});
 
-		it("should return empty array for empty history", function () {
+		it("should return empty array for empty history", () => {
 			const history = new FileBackedHistory({
 				folder: TEST_HISTORY_DIR,
 				fileName: TEST_HISTORY_FILE,
@@ -246,8 +246,8 @@ describe("FileBackedHistory", function () {
 		});
 	});
 
-	describe("File Persistence", function () {
-		it("should save history to file when save is enabled", async function () {
+	describe("File Persistence", () => {
+		it("should save history to file when save is enabled", async () => {
 			const history = new FileBackedHistory({
 				folder: TEST_HISTORY_DIR,
 				fileName: TEST_HISTORY_FILE,
@@ -270,7 +270,7 @@ describe("FileBackedHistory", function () {
 			]);
 		});
 
-		it("should not save history to file when save is disabled", async function () {
+		it("should not save history to file when save is disabled", async () => {
 			const history = new FileBackedHistory({
 				folder: TEST_HISTORY_DIR,
 				fileName: TEST_HISTORY_FILE,
@@ -286,7 +286,7 @@ describe("FileBackedHistory", function () {
 			);
 		});
 
-		it("should load existing history from file", async function () {
+		it("should load existing history from file", async () => {
 			// Create a history file first
 			const existingHistory = { history: ["existing_cmd1", "existing_cmd2"] };
 			await fsExtra.writeJson(FULL_HISTORY_PATH, existingHistory);
@@ -305,7 +305,7 @@ describe("FileBackedHistory", function () {
 			assert.strictEqual(history.historyIndex, 2);
 		});
 
-		it("should handle corrupted history file gracefully", async function () {
+		it("should handle corrupted history file gracefully", async () => {
 			// Create corrupted JSON file
 			await fsExtra.writeFile(FULL_HISTORY_PATH, "this is not valid json");
 
@@ -338,7 +338,7 @@ describe("FileBackedHistory", function () {
 			consoleLogStub.restore();
 		});
 
-		it("should respect limit when saving to file", async function () {
+		it("should respect limit when saving to file", async () => {
 			const history = new FileBackedHistory({
 				folder: TEST_HISTORY_DIR,
 				fileName: TEST_HISTORY_FILE,
@@ -354,7 +354,7 @@ describe("FileBackedHistory", function () {
 			assert.deepStrictEqual(fileContent.history, ["cmd2", "cmd3"]);
 		});
 
-		it("should handle directory creation errors gracefully", function () {
+		it("should handle directory creation errors gracefully", () => {
 			const consoleErrorStub = sinon.stub(console, "error");
 			const ensureDirSyncStub = sinon
 				.stub(fsExtra, "ensureDirSync")
@@ -378,7 +378,7 @@ describe("FileBackedHistory", function () {
 			ensureDirSyncStub.restore();
 		});
 
-		it("should handle file write errors gracefully", async function () {
+		it("should handle file write errors gracefully", async () => {
 			const consoleErrorStub = sinon.stub(console, "error");
 			const writeFileSyncStub = sinon
 				.stub(fsExtra, "writeFileSync")
@@ -403,8 +403,8 @@ describe("FileBackedHistory", function () {
 		});
 	});
 
-	describe("_getLimitedHistory", function () {
-		it("should return limited history when over limit", function () {
+	describe("_getLimitedHistory", () => {
+		it("should return limited history when over limit", () => {
 			const history = new FileBackedHistory({
 				folder: TEST_HISTORY_DIR,
 				fileName: TEST_HISTORY_FILE,
@@ -419,7 +419,7 @@ describe("FileBackedHistory", function () {
 			assert.deepStrictEqual(limitedHistory, ["cmd3", "cmd4"]);
 		});
 
-		it("should return full history when under limit", function () {
+		it("should return full history when under limit", () => {
 			const history = new FileBackedHistory({
 				folder: TEST_HISTORY_DIR,
 				fileName: TEST_HISTORY_FILE,
@@ -433,7 +433,7 @@ describe("FileBackedHistory", function () {
 			assert.deepStrictEqual(limitedHistory, ["cmd1", "cmd2"]);
 		});
 
-		it("should return copy of history", function () {
+		it("should return copy of history", () => {
 			const history = new FileBackedHistory({
 				folder: TEST_HISTORY_DIR,
 				fileName: TEST_HISTORY_FILE,
@@ -450,8 +450,8 @@ describe("FileBackedHistory", function () {
 		});
 	});
 
-	describe("Manual save and load", function () {
-		it("should allow manual save", async function () {
+	describe("Manual save and load", () => {
+		it("should allow manual save", async () => {
 			const history = new FileBackedHistory({
 				folder: TEST_HISTORY_DIR,
 				fileName: TEST_HISTORY_FILE,
@@ -483,7 +483,7 @@ describe("FileBackedHistory", function () {
 			]);
 		});
 
-		it("should allow manual load", async function () {
+		it("should allow manual load", async () => {
 			// Create history file
 			const existingHistory = { history: ["loaded_cmd1", "loaded_cmd2"] };
 			await fsExtra.writeJson(FULL_HISTORY_PATH, existingHistory);

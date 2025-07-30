@@ -13,7 +13,7 @@ const ELLIPSIS = "…";
  * @returns {string} The formatted index with leading spaces
  */
 export function formatIndex(i, limit = 100) {
-	let len = (limit || 100).toString().length;
+	const len = (limit || 100).toString().length;
 	return " ".repeat(len - `${i}`.length) + i;
 }
 
@@ -70,20 +70,20 @@ export function isAsyncFunc(func) {
  */
 export function formatList(elems, maxSize = 32, ellipsized, ellipsis) {
 	const cols = process.stdout.columns;
-	let ratio = Math.floor((cols - 1) / maxSize);
-	let remainder = (cols - 1) % maxSize;
+	const ratio = Math.floor((cols - 1) / maxSize);
+	const remainder = (cols - 1) % maxSize;
 	maxSize += Math.floor(remainder / ratio);
 	let max = 0;
-	for (let elem of elems) {
+	for (const elem of elems) {
 		max = Math.max(max, elem.length + 4);
 	}
 	if (ellipsized && max > maxSize) {
 		max = maxSize;
 	}
-	let columns = (cols / max) | 0;
+	const columns = (cols / max) | 0;
 	let str = "";
 	let c = 1;
-	for (let elem of elems) {
+	for (const elem of elems) {
 		str += setSpaces(elem, max, ellipsized, ellipsis);
 		if (c === columns) {
 			str += " ".repeat(cols - max * columns);
@@ -119,7 +119,7 @@ export function setSpaces(str, len, ellipsized, ellipsis) {
  */
 export function ellipsize(str, len, ellipsis = ELLIPSIS) {
 	if (str.length > len) {
-		let l = decolorize(ellipsis).length + 1;
+		const l = decolorize(ellipsis).length + 1;
 		return str.substring(0, len - l) + ellipsis;
 	}
 	return str;

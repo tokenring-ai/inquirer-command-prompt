@@ -1,5 +1,5 @@
-import fs from "fs-extra";
 import path from "node:path";
+import fs from "fs-extra";
 
 /** @type {string} Default filename for history storage */
 const DEFAULT_HISTORY_FILE_NAME = "inquirer-command-prompt-history.json";

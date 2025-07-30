@@ -1,18 +1,18 @@
 import assert from "node:assert";
-import { fileURLToPath } from "node:url";
 import { dirname, resolve as pathResolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import fsExtra from "fs-extra";
-import commandPrompt from "../index.js";
 import EphemeralHistory from "../EphemeralHistory.js";
 import FileBackedHistory from "../FileBackedHistory.js";
+import commandPrompt from "../index.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 describe("Command Prompt Integration Tests", function () {
 	this.timeout(5000);
 
-	describe("Configuration Integration", function () {
-		it("should accept basic configuration", function () {
+	describe("Configuration Integration", () => {
+		it("should accept basic configuration", () => {
 			const config = {
 				message: "Enter command:",
 				context: "test",
@@ -26,7 +26,7 @@ describe("Command Prompt Integration Tests", function () {
 			assert.strictEqual(config.default, "default_value");
 		});
 
-		it("should handle validation configuration", function () {
+		it("should handle validation configuration", () => {
 			const validateFn = (input) => {
 				if (!input || input.trim().length === 0) {
 					return "Input cannot be empty";
@@ -53,7 +53,7 @@ describe("Command Prompt Integration Tests", function () {
 			assert.strictEqual(config.validate("hello"), true);
 		});
 
-		it("should handle transformer configuration", function () {
+		it("should handle transformer configuration", () => {
 			const transformerFn = (input, answers, flags) => {
 				if (flags.isFinal) {
 					return input.toUpperCase();
@@ -79,8 +79,8 @@ describe("Command Prompt Integration Tests", function () {
 		});
 	});
 
-	describe("Auto-completion Integration", function () {
-		it("should handle array-based auto-completion", function () {
+	describe("Auto-completion Integration", () => {
+		it("should handle array-based auto-completion", () => {
 			const commands = ["start", "stop", "restart", "status", "help"];
 
 			const config = {
@@ -93,7 +93,7 @@ describe("Command Prompt Integration Tests", function () {
 			assert.ok(Array.isArray(config.autoCompletion));
 		});
 
-		it("should handle function-based auto-completion", function () {
+		it("should handle function-based auto-completion", () => {
 			const autoCompleteFn = (line) => {
 				const commands = ["start", "stop", "restart", "status", "help"];
 				return commands.filter((cmd) => cmd.startsWith(line.toLowerCase()));
@@ -115,7 +115,7 @@ describe("Command Prompt Integration Tests", function () {
 			assert.deepStrictEqual(config.autoCompletion("xyz"), []);
 		});
 
-		it("should handle async auto-completion", async function () {
+		it("should handle async auto-completion", async () => {
 			const asyncAutoCompleteFn = async (line) => {
 				// Simulate async operation (e.g., fetching from API)
 				await new Promise((resolve) => setTimeout(resolve, 10));
@@ -134,7 +134,7 @@ describe("Command Prompt Integration Tests", function () {
 			assert.deepStrictEqual(result, ["async_start", "async_stop"]);
 		});
 
-		it("should handle autocomplete customization options", function () {
+		it("should handle autocomplete customization options", () => {
 			const shortFn = (line, matches) => matches.slice(0, 5);
 
 			const config = {
@@ -163,24 +163,24 @@ describe("Command Prompt Integration Tests", function () {
 		});
 	});
 
-	describe("History Integration", function () {
+	describe("History Integration", () => {
 		const TEST_HISTORY_DIR = pathResolve(__dirname, "integration_history_test");
 		const HISTORY_FILE = "integration-test-history.json";
 
-		beforeEach(async function () {
+		beforeEach(async () => {
 			if (await fsExtra.pathExists(TEST_HISTORY_DIR)) {
 				await fsExtra.remove(TEST_HISTORY_DIR);
 			}
 			await fsExtra.ensureDir(TEST_HISTORY_DIR);
 		});
 
-		afterEach(async function () {
+		afterEach(async () => {
 			if (await fsExtra.pathExists(TEST_HISTORY_DIR)) {
 				await fsExtra.remove(TEST_HISTORY_DIR);
 			}
 		});
 
-		it("should work with EphemeralHistory", function () {
+		it("should work with EphemeralHistory", () => {
 			const historyHandler = new EphemeralHistory({ limit: 10 });
 
 			const config = {
@@ -204,7 +204,7 @@ describe("Command Prompt Integration Tests", function () {
 			assert.strictEqual(historyHandler.getPrevious(), "test_command_1");
 		});
 
-		it("should work with FileBackedHistory", async function () {
+		it("should work with FileBackedHistory", async () => {
 			const historyHandler = new FileBackedHistory({
 				folder: TEST_HISTORY_DIR,
 				fileName: HISTORY_FILE,
@@ -240,7 +240,7 @@ describe("Command Prompt Integration Tests", function () {
 			assert.deepStrictEqual(fileContent.history, ["file_cmd_1", "file_cmd_2"]);
 		});
 
-		it("should handle history configuration object", function () {
+		it("should handle history configuration object", () => {
 			const historyConfig = {
 				folder: TEST_HISTORY_DIR,
 				fileName: HISTORY_FILE,
@@ -261,8 +261,8 @@ describe("Command Prompt Integration Tests", function () {
 		});
 	});
 
-	describe("Event Handlers Integration", function () {
-		it("should handle onBeforeKeyPress configuration", function () {
+	describe("Event Handlers Integration", () => {
+		it("should handle onBeforeKeyPress configuration", () => {
 			const keyPressLog = [];
 			const onBeforeKeyPressFn = ({ key }) => {
 				keyPressLog.push(key.name);
@@ -284,7 +284,7 @@ describe("Command Prompt Integration Tests", function () {
 			assert.deepStrictEqual(keyPressLog, ["a", "b", "enter"]);
 		});
 
-		it("should handle onBeforeRewrite configuration", function () {
+		it("should handle onBeforeRewrite configuration", () => {
 			const onBeforeRewriteFn = (text) => {
 				// Auto-format commands
 				return text.trim().toLowerCase().replace(/\s+/g, " ");
@@ -307,7 +307,7 @@ describe("Command Prompt Integration Tests", function () {
 			);
 		});
 
-		it("should handle onClose configuration", function () {
+		it("should handle onClose configuration", () => {
 			let closeCalled = false;
 			const onCloseFn = () => {
 				closeCalled = true;
@@ -325,8 +325,8 @@ describe("Command Prompt Integration Tests", function () {
 		});
 	});
 
-	describe("Theme and Display Integration", function () {
-		it("should handle theme configuration", function () {
+	describe("Theme and Display Integration", () => {
+		it("should handle theme configuration", () => {
 			const customTheme = {
 				style: {
 					message: (text, status) => `[${status}] ${text}`,
@@ -354,7 +354,7 @@ describe("Command Prompt Integration Tests", function () {
 			);
 		});
 
-		it("should handle display customization options", function () {
+		it("should handle display customization options", () => {
 			const config = {
 				message: "Enter command:",
 				context: "display_integration_test",
@@ -373,8 +373,8 @@ describe("Command Prompt Integration Tests", function () {
 		});
 	});
 
-	describe("Advanced Configuration Integration", function () {
-		it("should handle complex configuration with all options", function () {
+	describe("Advanced Configuration Integration", () => {
+		it("should handle complex configuration with all options", () => {
 			const historyHandler = new EphemeralHistory({ limit: 50 });
 			const commands = ["build", "test", "deploy", "rollback"];
 
@@ -444,8 +444,8 @@ describe("Command Prompt Integration Tests", function () {
 			);
 		});
 
-		describe("Multi-line Input Integration", function () {
-			it("should allow multi-line input when meta+M is pressed", async function () {
+		describe("Multi-line Input Integration", () => {
+			it("should allow multi-line input when meta+M is pressed", async () => {
 				// Simulate the prompt with multi-line enabled
 				let multiLineEnabled = false;
 				const fakePrompt = async (config) => {
@@ -475,7 +475,7 @@ describe("Command Prompt Integration Tests", function () {
 				assert.strictEqual(result, "line1\nline2");
 			});
 
-			it("should return single-line input if meta+M is not pressed", async function () {
+			it("should return single-line input if meta+M is not pressed", async () => {
 				// Simulate the prompt without multi-line
 				const fakePrompt = async (config) => {
 					// meta+M not pressed

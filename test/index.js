@@ -1,20 +1,20 @@
 import assert from "node:assert";
-import { fileURLToPath } from "node:url";
 import { dirname, resolve as pathResolve } from "node:path";
-import sinon from "sinon";
-import fsExtra from "fs-extra";
+import { fileURLToPath } from "node:url";
 import { render } from "@inquirer/testing";
-import commandPrompt from "../index.js";
+import fsExtra from "fs-extra";
+import sinon from "sinon";
 import EphemeralHistory from "../EphemeralHistory.js";
 import FileBackedHistory from "../FileBackedHistory.js";
+import commandPrompt from "../index.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 describe("inquirer-command-prompt", function () {
 	this.timeout(5000);
 
-	describe("Basic Functionality", function () {
-		it("should handle basic input and return result", async function () {
+	describe("Basic Functionality", () => {
+		it("should handle basic input and return result", async () => {
 			const { answer, events } = await render(commandPrompt, {
 				message: "Enter command:",
 			});
@@ -31,7 +31,7 @@ describe("inquirer-command-prompt", function () {
 			assert.strictEqual(result, "hello world");
 		});
 
-		it("should handle default values", async function () {
+		it("should handle default values", async () => {
 			const { answer, events } = await render(commandPrompt, {
 				message: "Enter command:",
 				default: "default_value",
@@ -46,7 +46,7 @@ describe("inquirer-command-prompt", function () {
 			assert.strictEqual(result, "default_value");
 		});
 
-		it("should be a function that returns a promise", function () {
+		it("should be a function that returns a promise", () => {
 			assert.strictEqual(typeof commandPrompt, "function");
 
 			// Create a basic config
@@ -57,7 +57,7 @@ describe("inquirer-command-prompt", function () {
 			assert.ok(result instanceof Promise);
 		});
 
-		it("should handle validation and reject invalid input", async function () {
+		it("should handle validation and reject invalid input", async () => {
 			const validateFn = (input) =>
 				input.includes("test") ? true : "Must contain test";
 
@@ -91,7 +91,7 @@ describe("inquirer-command-prompt", function () {
 			assert.strictEqual(result, "test123");
 		});
 
-		it("should handle required validation", async function () {
+		it("should handle required validation", async () => {
 			const { answer, events, getScreen } = await render(commandPrompt, {
 				message: "Enter command:",
 				required: true,
@@ -114,7 +114,7 @@ describe("inquirer-command-prompt", function () {
 			assert.strictEqual(result, "valid input");
 		});
 
-		it("should handle transformer configuration", async function () {
+		it("should handle transformer configuration", async () => {
 			const transformerFn = (input) => input.toUpperCase();
 
 			const { answer, events, getScreen } = await render(commandPrompt, {
@@ -139,8 +139,8 @@ describe("inquirer-command-prompt", function () {
 		});
 	});
 
-	describe("Auto-completion Functionality", function () {
-		it("should handle array-based auto-completion with tab key", async function () {
+	describe("Auto-completion Functionality", () => {
+		it("should handle array-based auto-completion with tab key", async () => {
 			const availableCommands = ["foo", "bar", "baz"];
 
 			const { answer, events, getScreen } = await render(commandPrompt, {
@@ -166,7 +166,7 @@ describe("inquirer-command-prompt", function () {
 			assert.strictEqual(result, "foo");
 		});
 
-		it("should show multiple auto-completion options", async function () {
+		it("should show multiple auto-completion options", async () => {
 			const availableCommands = ["foo", "foobar", "fizz", "bar"];
 
 			const { answer, events, getScreen } = await render(commandPrompt, {
@@ -197,7 +197,7 @@ describe("inquirer-command-prompt", function () {
 			assert.strictEqual(result, "foo");
 		});
 
-		it("should handle function-based auto-completion", async function () {
+		it("should handle function-based auto-completion", async () => {
 			const autoCompleteFn = (line) =>
 				["foo", "bar"].filter((cmd) => cmd.startsWith(line));
 
@@ -224,7 +224,7 @@ describe("inquirer-command-prompt", function () {
 			assert.strictEqual(result, "foo");
 		});
 
-		it("should handle async auto-completion", async function () {
+		it("should handle async auto-completion", async () => {
 			const asyncAutoComplete = async (line) => {
 				await new Promise((resolve) => setTimeout(resolve, 10));
 				return ["async_foo", "async_bar"].filter((cmd) => cmd.startsWith(line));
@@ -254,25 +254,25 @@ describe("inquirer-command-prompt", function () {
 		});
 	});
 
-	describe("History Handler Integration", function () {
+	describe("History Handler Integration", () => {
 		const TEST_HISTORY_DIR = pathResolve(__dirname, "test_history_integration");
 		const HISTORY_FILE = "integration-test-history.json";
 
-		beforeEach(async function () {
+		beforeEach(async () => {
 			if (await fsExtra.pathExists(TEST_HISTORY_DIR)) {
 				await fsExtra.remove(TEST_HISTORY_DIR);
 			}
 			await fsExtra.ensureDir(TEST_HISTORY_DIR);
 		});
 
-		afterEach(async function () {
+		afterEach(async () => {
 			sinon.restore();
 			if (await fsExtra.pathExists(TEST_HISTORY_DIR)) {
 				await fsExtra.remove(TEST_HISTORY_DIR);
 			}
 		});
 
-		it("should work with EphemeralHistory and up/down arrow navigation", async function () {
+		it("should work with EphemeralHistory and up/down arrow navigation", async () => {
 			const historyHandler = new EphemeralHistory();
 
 			// Pre-populate history
@@ -308,7 +308,7 @@ describe("inquirer-command-prompt", function () {
 			assert.strictEqual(result, "second_command");
 		});
 
-		it("should display history with Shift+Right", async function () {
+		it("should display history with Shift+Right", async () => {
 			const historyHandler = new EphemeralHistory();
 
 			// Pre-populate history
@@ -339,7 +339,7 @@ describe("inquirer-command-prompt", function () {
 			assert.strictEqual(result, "new_command");
 		});
 
-		it("should work with FileBackedHistory", async function () {
+		it("should work with FileBackedHistory", async () => {
 			const historyHandler = new FileBackedHistory({
 				folder: TEST_HISTORY_DIR,
 				fileName: HISTORY_FILE,
@@ -368,7 +368,7 @@ describe("inquirer-command-prompt", function () {
 			assert.deepStrictEqual(fileContent.history, ["test_command"]);
 		});
 
-		it("should use default EphemeralHistory when no historyHandler provided", function () {
+		it("should use default EphemeralHistory when no historyHandler provided", () => {
 			const config = {
 				message: ">",
 				context: "default_history_test",
@@ -378,7 +378,7 @@ describe("inquirer-command-prompt", function () {
 			assert.strictEqual(config.historyHandler, undefined);
 		});
 
-		it("should handle history configuration object", function () {
+		it("should handle history configuration object", () => {
 			const historyConfig = {
 				folder: TEST_HISTORY_DIR,
 				fileName: HISTORY_FILE,
@@ -395,7 +395,7 @@ describe("inquirer-command-prompt", function () {
 			assert.deepStrictEqual(config.history, historyConfig);
 		});
 
-		it("should handle custom history handler", function () {
+		it("should handle custom history handler", () => {
 			const mockHistoryHandler = {
 				init: sinon.stub(),
 				add: sinon.stub(),
@@ -446,8 +446,8 @@ describe("inquirer-command-prompt", function () {
 		});
 	});
 
-	describe("onCtrlEnd Handler", function () {
-		it("should handle onCtrlEnd configuration", function () {
+	describe("onCtrlEnd Handler", () => {
+		it("should handle onCtrlEnd configuration", () => {
 			const onCtrlEndFn = (line) => line.toUpperCase();
 
 			const config = {
@@ -461,8 +461,8 @@ describe("inquirer-command-prompt", function () {
 		});
 	});
 
-	describe("Configuration Options", function () {
-		it("should handle theme configuration", function () {
+	describe("Configuration Options", () => {
+		it("should handle theme configuration", () => {
 			const theme = {
 				style: {
 					message: (text) => `[${text}]`,
@@ -479,7 +479,7 @@ describe("inquirer-command-prompt", function () {
 			assert.deepStrictEqual(config.theme, theme);
 		});
 
-		it("should handle display options", function () {
+		it("should handle display options", () => {
 			const config = {
 				message: ">",
 				context: "display_test",
@@ -499,7 +499,7 @@ describe("inquirer-command-prompt", function () {
 			assert.strictEqual(config.ellipsis, "...");
 		});
 
-		it("should handle event handlers", function () {
+		it("should handle event handlers", () => {
 			const onBeforeKeyPressFn = ({ key }) =>
 				console.log("Key pressed:", key.name);
 			const onBeforeRewriteFn = (text) => text.trim();
@@ -519,7 +519,7 @@ describe("inquirer-command-prompt", function () {
 			assert.strictEqual(config.onBeforeRewrite("  hello  "), "hello");
 		});
 
-		it("should handle short option for autocomplete", function () {
+		it("should handle short option for autocomplete", () => {
 			const shortFn = (line, matches) => matches.slice(0, 3);
 
 			const config = {

@@ -1,19 +1,19 @@
 import assert from "node:assert";
 import EphemeralHistory from "../EphemeralHistory.js";
 
-describe("EphemeralHistory", function () {
+describe("EphemeralHistory", () => {
 	let history;
-	beforeEach(function () {
+	beforeEach(() => {
 		history = new EphemeralHistory();
 	});
 
-	describe("Configuration", function () {
-		it("should use default configuration", function () {
+	describe("Configuration", () => {
+		it("should use default configuration", () => {
 			assert.strictEqual(history.config.limit, 100);
 			assert.deepStrictEqual(history.config.blacklist, []);
 		});
 
-		it("should accept custom configuration", function () {
+		it("should accept custom configuration", () => {
 			const customHistory = new EphemeralHistory({
 				limit: 50,
 				blacklist: ["clear", "exit"],
@@ -24,8 +24,8 @@ describe("EphemeralHistory", function () {
 		});
 	});
 
-	describe("Adding Commands", function () {
-		it("should add commands to history", function () {
+	describe("Adding Commands", () => {
+		it("should add commands to history", () => {
 			history.add("command1");
 			history.add("command2");
 
@@ -33,7 +33,7 @@ describe("EphemeralHistory", function () {
 			assert.strictEqual(history.historyIndex, 2);
 		});
 
-		it("should not add duplicate consecutive commands", function () {
+		it("should not add duplicate consecutive commands", () => {
 			history.add("command1");
 			history.add("command1"); // Duplicate
 			history.add("command2");
@@ -46,7 +46,7 @@ describe("EphemeralHistory", function () {
 			]);
 		});
 
-		it("should respect history limit", function () {
+		it("should respect history limit", () => {
 			history.setConfig({ limit: 3 });
 
 			history.add("cmd1");
@@ -58,7 +58,7 @@ describe("EphemeralHistory", function () {
 			assert.strictEqual(history.historyIndex, 3);
 		});
 
-		it("should ignore blacklisted commands", function () {
+		it("should ignore blacklisted commands", () => {
 			history.setConfig({ blacklist: ["clear", "exit"] });
 
 			history.add("command1");
@@ -70,15 +70,15 @@ describe("EphemeralHistory", function () {
 		});
 	});
 
-	describe("Navigation", function () {
-		beforeEach(function () {
+	describe("Navigation", () => {
+		beforeEach(() => {
 			history.add("cmd1");
 			history.add("cmd2");
 			history.add("cmd3");
 			// History: ['cmd1', 'cmd2', 'cmd3'], index: 3
 		});
 
-		it("should navigate backwards through history", function () {
+		it("should navigate backwards through history", () => {
 			assert.strictEqual(history.getPrevious(), "cmd3");
 			assert.strictEqual(history.historyIndex, 2);
 
@@ -93,7 +93,7 @@ describe("EphemeralHistory", function () {
 			assert.strictEqual(history.historyIndex, 0);
 		});
 
-		it("should navigate forwards through history", function () {
+		it("should navigate forwards through history", () => {
 			// First go back to beginning
 			history.getPrevious(); // cmd3, index: 2
 			history.getPrevious(); // cmd2, index: 1
@@ -116,14 +116,14 @@ describe("EphemeralHistory", function () {
 		});
 	});
 
-	describe("Getting All Commands", function () {
-		beforeEach(function () {
+	describe("Getting All Commands", () => {
+		beforeEach(() => {
 			history.add("cmd1");
 			history.add("cmd2");
 			history.add("cmd3");
 		});
 
-		it("should return copy of all commands", function () {
+		it("should return copy of all commands", () => {
 			const allCommands = history.getAll();
 
 			assert.deepStrictEqual(allCommands, ["cmd1", "cmd2", "cmd3"]);
@@ -134,20 +134,20 @@ describe("EphemeralHistory", function () {
 		});
 	});
 
-	describe("Clearing History", function () {
-		beforeEach(function () {
+	describe("Clearing History", () => {
+		beforeEach(() => {
 			history.add("cmd1");
 			history.add("cmd2");
 		});
 
-		it("should clear specific context", function () {
+		it("should clear specific context", () => {
 			history.clear();
 
 			assert.deepStrictEqual(history.history, []);
 			assert.strictEqual(history.historyIndex, 0);
 		});
 
-		it("should handle clearing non-existent context", function () {
+		it("should handle clearing non-existent context", () => {
 			history.clear();
 			// Should not throw error
 		});

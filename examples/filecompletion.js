@@ -16,7 +16,7 @@ async function runPrompt() {
 	}
 
 	const short = (l, m) => {
-		let res = [];
+		const res = [];
 		if (l) {
 			l = l.replace(/ $/, "");
 			let r = l.split("/");
