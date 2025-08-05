@@ -271,10 +271,13 @@ export default createPrompt((config, done) => {
 					displayContent: chalk.grey("No available commands"),
 				});
 			} else if (matches.length === 1) {
+				const match = matches[0];
 				setLines({
-					activeLines: [matches[0]],
+					activeLines: [match],
 					inactiveLines: [],
 				});
+				rl.line = match;
+				rl.cursor = match.length;
 			} else {
 				// Display autocompletion suggestions
 				const promptMessage =
