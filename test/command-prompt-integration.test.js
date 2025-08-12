@@ -1,15 +1,16 @@
-import assert from "node:assert";
+import { describe, it, beforeEach, afterEach, expect, vi } from "vitest";
 import { dirname, resolve as pathResolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import fsExtra from "fs-extra";
-import EphemeralHistory from "../EphemeralHistory.js";
-import FileBackedHistory from "../FileBackedHistory.js";
-import commandPrompt from "../index.js";
+import EphemeralHistory from "../EphemeralHistory.ts";
+import FileBackedHistory from "../FileBackedHistory.ts";
+import commandPrompt from "../index.ts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-describe("Command Prompt Integration Tests", function () {
-	this.timeout(5000);
+describe("Command Prompt Integration Tests", () => {
+	// Set timeout for all tests in this suite
+	vi.setConfig({ testTimeout: 5000 });
 
 	describe("Configuration Integration", () => {
 		it("should accept basic configuration", () => {
@@ -20,10 +21,10 @@ describe("Command Prompt Integration Tests", function () {
 			};
 
 			// Test that commandPrompt accepts the configuration
-			assert.strictEqual(typeof commandPrompt, "function");
-			assert.strictEqual(config.message, "Enter command:");
-			assert.strictEqual(config.context, "test");
-			assert.strictEqual(config.default, "default_value");
+			expect(typeof commandPrompt).toBe("function");
+			expect(config.message).toBe("Enter command:");
+			expect(config.context).toBe("test");
+			expect(config.default).toBe("default_value");
 		});
 
 		it("should handle validation configuration", () => {
@@ -44,13 +45,10 @@ describe("Command Prompt Integration Tests", function () {
 				required: true,
 			};
 
-			assert.strictEqual(typeof config.validate, "function");
-			assert.strictEqual(config.validate(""), "Input cannot be empty");
-			assert.strictEqual(
-				config.validate("hi"),
-				"Input must be at least 3 characters",
-			);
-			assert.strictEqual(config.validate("hello"), true);
+			expect(typeof config.validate).toBe("function");
+			expect(config.validate("")).toBe("Input cannot be empty");
+			expect(config.validate("hi")).toBe("Input must be at least 3 characters");
+			expect(config.validate("hello")).toBe(true);
 		});
 
 		it("should handle transformer configuration", () => {
@@ -67,15 +65,9 @@ describe("Command Prompt Integration Tests", function () {
 				transformer: transformerFn,
 			};
 
-			assert.strictEqual(typeof config.transformer, "function");
-			assert.strictEqual(
-				config.transformer("hello", {}, { isFinal: true }),
-				"HELLO",
-			);
-			assert.strictEqual(
-				config.transformer("hello", {}, { isFinal: false }),
-				"hello",
-			);
+			expect(typeof config.transformer).toBe("function");
+			expect(config.transformer("hello", {}, { isFinal: true })).toBe("HELLO");
+			expect(config.transformer("hello", {}, { isFinal: false })).toBe("hello");
 		});
 	});
 
@@ -89,8 +81,8 @@ describe("Command Prompt Integration Tests", function () {
 				autoCompletion: commands,
 			};
 
-			assert.deepStrictEqual(config.autoCompletion, commands);
-			assert.ok(Array.isArray(config.autoCompletion));
+			expect(config.autoCompletion).toEqual(commands);
+			expect(Array.isArray(config.autoCompletion)).toBe(true);
 		});
 
 		it("should handle function-based auto-completion", () => {
@@ -105,14 +97,14 @@ describe("Command Prompt Integration Tests", function () {
 				autoCompletion: autoCompleteFn,
 			};
 
-			assert.strictEqual(typeof config.autoCompletion, "function");
-			assert.deepStrictEqual(config.autoCompletion("st"), [
+			expect(typeof config.autoCompletion).toBe("function");
+			expect(config.autoCompletion("st")).toEqual([
 				"start",
 				"stop",
 				"status",
 			]);
-			assert.deepStrictEqual(config.autoCompletion("help"), ["help"]);
-			assert.deepStrictEqual(config.autoCompletion("xyz"), []);
+			expect(config.autoCompletion("help")).toEqual(["help"]);
+			expect(config.autoCompletion("xyz")).toEqual([]);
 		});
 
 		it("should handle async auto-completion", async () => {
@@ -129,9 +121,9 @@ describe("Command Prompt Integration Tests", function () {
 				autoCompletion: asyncAutoCompleteFn,
 			};
 
-			assert.strictEqual(typeof config.autoCompletion, "function");
+			expect(typeof config.autoCompletion).toBe("function");
 			const result = await config.autoCompletion("async_s");
-			assert.deepStrictEqual(result, ["async_start", "async_stop"]);
+			expect(result).toEqual(["async_start", "async_stop"]);
 		});
 
 		it("should handle autocomplete customization options", () => {
@@ -148,18 +140,18 @@ describe("Command Prompt Integration Tests", function () {
 				ellipsis: "...",
 			};
 
-			assert.strictEqual(typeof config.short, "function");
-			assert.deepStrictEqual(config.short("", ["a", "b", "c", "d", "e", "f"]), [
+			expect(typeof config.short).toBe("function");
+			expect(config.short("", ["a", "b", "c", "d", "e", "f"])).toEqual([
 				"a",
 				"b",
 				"c",
 				"d",
 				"e",
 			]);
-			assert.strictEqual(config.autocompletePrompt, "Available commands:");
-			assert.strictEqual(config.maxSize, 80);
-			assert.strictEqual(config.ellipsize, true);
-			assert.strictEqual(config.ellipsis, "...");
+			expect(config.autocompletePrompt).toBe("Available commands:");
+			expect(config.maxSize).toBe(80);
+			expect(config.ellipsize).toBe(true);
+			expect(config.ellipsis).toBe("...");
 		});
 	});
 
@@ -190,18 +182,18 @@ describe("Command Prompt Integration Tests", function () {
 			};
 
 			// Test that the history handler is properly configured
-			assert.strictEqual(config.historyHandler, historyHandler);
-			assert.strictEqual(historyHandler.config.limit, 10);
+			expect(config.historyHandler).toBe(historyHandler);
+			expect(historyHandler.config.limit).toBe(10);
 
 			historyHandler.add("test_command_1");
 			historyHandler.add("test_command_2");
 
-			assert.deepStrictEqual(historyHandler.getAll(), [
+			expect(historyHandler.getAll()).toEqual([
 				"test_command_1",
 				"test_command_2",
 			]);
-			assert.strictEqual(historyHandler.getPrevious(), "test_command_2");
-			assert.strictEqual(historyHandler.getPrevious(), "test_command_1");
+			expect(historyHandler.getPrevious()).toBe("test_command_2");
+			expect(historyHandler.getPrevious()).toBe("test_command_1");
 		});
 
 		it("should work with FileBackedHistory", async () => {
@@ -219,25 +211,25 @@ describe("Command Prompt Integration Tests", function () {
 			};
 
 			// Test that the history handler is properly configured
-			assert.strictEqual(config.historyHandler, historyHandler);
-			assert.strictEqual(historyHandler.config.save, true);
-			assert.strictEqual(historyHandler.config.limit, 5);
+			expect(config.historyHandler).toBe(historyHandler);
+			expect(historyHandler.config.save).toBe(true);
+			expect(historyHandler.config.limit).toBe(5);
 
 			// Test history functionality
 			historyHandler.add("file_cmd_1");
 			historyHandler.add("file_cmd_2");
 
-			assert.deepStrictEqual(historyHandler.getAll(), [
+			expect(historyHandler.getAll()).toEqual([
 				"file_cmd_1",
 				"file_cmd_2",
 			]);
 
 			// Verify file was created
 			const historyFilePath = pathResolve(TEST_HISTORY_DIR, HISTORY_FILE);
-			assert.ok(await fsExtra.pathExists(historyFilePath));
+			expect(await fsExtra.pathExists(historyFilePath)).toBe(true);
 
 			const fileContent = await fsExtra.readJson(historyFilePath);
-			assert.deepStrictEqual(fileContent.history, ["file_cmd_1", "file_cmd_2"]);
+			expect(fileContent.history).toEqual(["file_cmd_1", "file_cmd_2"]);
 		});
 
 		it("should handle history configuration object", () => {
@@ -255,9 +247,9 @@ describe("Command Prompt Integration Tests", function () {
 				history: historyConfig,
 			};
 
-			assert.deepStrictEqual(config.history, historyConfig);
-			assert.strictEqual(config.history.limit, 20);
-			assert.deepStrictEqual(config.history.blacklist, ["clear", "exit"]);
+			expect(config.history).toEqual(historyConfig);
+			expect(config.history.limit).toBe(20);
+			expect(config.history.blacklist).toEqual(["clear", "exit"]);
 		});
 	});
 
@@ -274,14 +266,14 @@ describe("Command Prompt Integration Tests", function () {
 				onBeforeKeyPress: onBeforeKeyPressFn,
 			};
 
-			assert.strictEqual(typeof config.onBeforeKeyPress, "function");
+			expect(typeof config.onBeforeKeyPress).toBe("function");
 
 			// Simulate key press events
 			config.onBeforeKeyPress({ key: { name: "a" } });
 			config.onBeforeKeyPress({ key: { name: "b" } });
 			config.onBeforeKeyPress({ key: { name: "enter" } });
 
-			assert.deepStrictEqual(keyPressLog, ["a", "b", "enter"]);
+			expect(keyPressLog).toEqual(["a", "b", "enter"]);
 		});
 
 		it("should handle onBeforeRewrite configuration", () => {
@@ -296,15 +288,9 @@ describe("Command Prompt Integration Tests", function () {
 				onBeforeRewrite: onBeforeRewriteFn,
 			};
 
-			assert.strictEqual(typeof config.onBeforeRewrite, "function");
-			assert.strictEqual(
-				config.onBeforeRewrite("  HELLO   WORLD  "),
-				"hello world",
-			);
-			assert.strictEqual(
-				config.onBeforeRewrite("Test\t\tCommand"),
-				"test command",
-			);
+			expect(typeof config.onBeforeRewrite).toBe("function");
+			expect(config.onBeforeRewrite("  HELLO   WORLD  ")).toBe("hello world");
+			expect(config.onBeforeRewrite("Test\t\tCommand")).toBe("test command");
 		});
 
 		it("should handle onClose configuration", () => {
@@ -319,9 +305,9 @@ describe("Command Prompt Integration Tests", function () {
 				onClose: onCloseFn,
 			};
 
-			assert.strictEqual(typeof config.onClose, "function");
+			expect(typeof config.onClose).toBe("function");
 			config.onClose();
-			assert.strictEqual(closeCalled, true);
+			expect(closeCalled).toBe(true);
 		});
 	});
 
@@ -342,16 +328,10 @@ describe("Command Prompt Integration Tests", function () {
 				theme: customTheme,
 			};
 
-			assert.deepStrictEqual(config.theme, customTheme);
-			assert.strictEqual(typeof config.theme.style.message, "function");
-			assert.strictEqual(
-				config.theme.style.message("Test", "idle"),
-				"[idle] Test",
-			);
-			assert.strictEqual(
-				config.theme.style.error("Error message"),
-				"❌ Error message",
-			);
+			expect(config.theme).toEqual(customTheme);
+			expect(typeof config.theme.style.message).toBe("function");
+			expect(config.theme.style.message("Test", "idle")).toBe("[idle] Test");
+			expect(config.theme.style.error("Error message")).toBe("❌ Error message");
 		});
 
 		it("should handle display customization options", () => {
@@ -365,11 +345,11 @@ describe("Command Prompt Integration Tests", function () {
 				ellipsis: "…",
 			};
 
-			assert.strictEqual(config.noColorOnAnswered, true);
-			assert.strictEqual(config.colorOnAnswered, "green");
-			assert.strictEqual(config.maxSize, 120);
-			assert.strictEqual(config.ellipsize, true);
-			assert.strictEqual(config.ellipsis, "…");
+			expect(config.noColorOnAnswered).toBe(true);
+			expect(config.colorOnAnswered).toBe("green");
+			expect(config.maxSize).toBe(120);
+			expect(config.ellipsize).toBe(true);
+			expect(config.ellipsis).toBe("…");
 		});
 	});
 
@@ -407,39 +387,37 @@ describe("Command Prompt Integration Tests", function () {
 			};
 
 			// Verify all configuration options are set correctly
-			assert.strictEqual(config.message, "🚀 Enter command:");
-			assert.strictEqual(config.context, "complex_integration_test");
-			assert.strictEqual(config.default, "help");
-			assert.strictEqual(config.required, true);
-			assert.strictEqual(config.historyHandler, historyHandler);
-			assert.deepStrictEqual(config.autoCompletion, commands);
-			assert.strictEqual(config.autocompletePrompt, "📋 Available commands:");
-			assert.strictEqual(typeof config.validate, "function");
-			assert.strictEqual(typeof config.transformer, "function");
-			assert.strictEqual(typeof config.onCtrlEnd, "function");
-			assert.strictEqual(typeof config.onBeforeKeyPress, "function");
-			assert.strictEqual(typeof config.onBeforeRewrite, "function");
-			assert.strictEqual(typeof config.onClose, "function");
-			assert.strictEqual(typeof config.short, "function");
-			assert.strictEqual(config.maxSize, 100);
-			assert.strictEqual(config.ellipsize, true);
-			assert.strictEqual(config.ellipsis, "...");
-			assert.strictEqual(typeof config.theme, "object");
+			expect(config.message).toBe("🚀 Enter command:");
+			expect(config.context).toBe("complex_integration_test");
+			expect(config.default).toBe("help");
+			expect(config.required).toBe(true);
+			expect(config.historyHandler).toBe(historyHandler);
+			expect(config.autoCompletion).toEqual(commands);
+			expect(config.autocompletePrompt).toBe("📋 Available commands:");
+			expect(typeof config.validate).toBe("function");
+			expect(typeof config.transformer).toBe("function");
+			expect(typeof config.onCtrlEnd).toBe("function");
+			expect(typeof config.onBeforeKeyPress).toBe("function");
+			expect(typeof config.onBeforeRewrite).toBe("function");
+			expect(typeof config.onClose).toBe("function");
+			expect(typeof config.short).toBe("function");
+			expect(config.maxSize).toBe(100);
+			expect(config.ellipsize).toBe(true);
+			expect(config.ellipsis).toBe("...");
+			expect(typeof config.theme).toBe("object");
 
 			// Test some of the functions
-			assert.strictEqual(config.validate("test"), true);
-			assert.strictEqual(config.validate(""), "Command cannot be empty");
-			assert.strictEqual(
-				config.transformer("hello", {}, { isFinal: true }),
-				"HELLO",
-			);
-			assert.strictEqual(config.onCtrlEnd("ls"), "exec ls");
-			assert.strictEqual(config.onBeforeRewrite("  test  "), "test");
-			assert.deepStrictEqual(
+			expect(config.validate("test")).toBe(true);
+			expect(config.validate("")).toBe("Command cannot be empty");
+			expect(config.transformer("hello", {}, { isFinal: true })).toBe("HELLO");
+			expect(config.onCtrlEnd("ls")).toBe("exec ls");
+			expect(config.onBeforeRewrite("  test  ")).toBe("test");
+			expect(
 				config.short(
 					"",
 					new Array(15).fill(0).map((_, i) => `cmd${i}`),
-				),
+				)
+			).toEqual(
 				new Array(10).fill(0).map((_, i) => `cmd${i}`),
 			);
 		});
@@ -466,13 +444,9 @@ describe("Command Prompt Integration Tests", function () {
 
 				// Simulate calling the prompt
 				const result = await fakePrompt(config);
-				assert.strictEqual(metaMCalled, true, "onMetaM should be called");
-				assert.strictEqual(
-					multiLineEnabled,
-					true,
-					"Multi-line mode should be enabled",
-				);
-				assert.strictEqual(result, "line1\nline2");
+				expect(metaMCalled).toBe(true);
+				expect(multiLineEnabled).toBe(true);
+				expect(result).toBe("line1\nline2");
 			});
 
 			it("should return single-line input if meta+M is not pressed", async () => {
@@ -487,7 +461,7 @@ describe("Command Prompt Integration Tests", function () {
 					// no onMetaM handler
 				};
 				const result = await fakePrompt(config);
-				assert.strictEqual(result, "single line");
+				expect(result).toBe("single line");
 			});
 		});
 	});

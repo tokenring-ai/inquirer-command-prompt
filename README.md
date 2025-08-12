@@ -11,13 +11,13 @@ npm install @token-ring/inquirer-command-prompt
 ## Usage
 
 ```javascript
-import commandPrompt from '@token-ring/inquirer-command-prompt';
+import commandPrompt from 'pkg/inquirer-command-prompt/index';
 
 const answer = await commandPrompt({
-  message: '>',
-  autoCompletion: ['foo', 'bar', 'baz'],
-  context: 'myContext',
-  validate: val => val ? true : 'Please enter a command'
+ message: '>',
+ autoCompletion: ['foo', 'bar', 'baz'],
+ context: 'myContext',
+ validate: val => val ? true : 'Please enter a command'
 });
 
 console.log(answer);
@@ -37,30 +37,30 @@ console.log(answer);
 ## Basic Example
 
 ```javascript
-import commandPrompt from '@token-ring/inquirer-command-prompt';
+import commandPrompt from 'pkg/inquirer-command-prompt/index';
 
 async function commandLoop() {
-  while (true) {
-    try {
-      const command = await commandPrompt({
-        message: '> ',
-        context: 'shell',
-        autoCompletion: ['help', 'exit', 'clear', 'history'],
-        validate: (input) => input.trim() ? true : 'Please enter a command'
-      });
-      
-      if (command === 'exit') break;
-      
-      console.log(`Executing: ${command}`);
-      // Handle command here
-      
-    } catch (error) {
-      if (error.name === 'ExitPromptError') {
-        break; // User pressed Ctrl+C
-      }
-      throw error;
-    }
+ while (true) {
+  try {
+   const command = await commandPrompt({
+    message: '> ',
+    context: 'shell',
+    autoCompletion: ['help', 'exit', 'clear', 'history'],
+    validate: (input) => input.trim() ? true : 'Please enter a command'
+   });
+
+   if (command === 'exit') break;
+
+   console.log(`Executing: ${command}`);
+   // Handle command here
+
+  } catch (error) {
+   if (error.name === 'ExitPromptError') {
+    break; // User pressed Ctrl+C
+   }
+   throw error;
   }
+ }
 }
 
 commandLoop();
@@ -183,18 +183,18 @@ const answer = await commandPrompt({
 ## Global Configuration
 
 ```javascript
-import { setGlobalConfig } from '@token-ring/inquirer-command-prompt';
+import {setGlobalConfig} from 'pkg/inquirer-command-prompt/index';
 
 setGlobalConfig({
-  history: {
-    save: true,
-    folder: './global-history',
-    limit: 100
-  },
-  onCtrlEnd: (line) => {
-    // Transform line on Ctrl+End
-    return line.toUpperCase();
-  }
+ history: {
+  save: true,
+  folder: './global-history',
+  limit: 100
+ },
+ onCtrlEnd: (line) => {
+  // Transform line on Ctrl+End
+  return line.toUpperCase();
+ }
 });
 ```
 
@@ -213,63 +213,63 @@ setGlobalConfig({
 ### File Path Completion
 
 ```javascript
-import commandPrompt from '@token-ring/inquirer-command-prompt';
-import { readdir } from 'fs/promises';
-import { join } from 'path';
+import commandPrompt from 'pkg/inquirer-command-prompt/index';
+import {readdir} from 'fs/promises';
+import {join} from 'path';
 
 async function getFileCompletions(line) {
-  try {
-    const dir = line.includes('/') ? line.substring(0, line.lastIndexOf('/')) : '.';
-    const files = await readdir(dir);
-    return files.map(file => join(dir, file));
-  } catch {
-    return [];
-  }
+ try {
+  const dir = line.includes('/') ? line.substring(0, line.lastIndexOf('/')) : '.';
+  const files = await readdir(dir);
+  return files.map(file => join(dir, file));
+ } catch {
+  return [];
+ }
 }
 
 const filePath = await commandPrompt({
-  message: 'Enter file path: ',
-  autoCompletion: getFileCompletions,
-  context: 'files'
+ message: 'Enter file path: ',
+ autoCompletion: getFileCompletions,
+ context: 'files'
 });
 ```
 
 ### Multi-Context Application
 
 ```javascript
-import commandPrompt from '@token-ring/inquirer-command-prompt';
+import commandPrompt from 'pkg/inquirer-command-prompt/index';
 
 async function databaseShell() {
-  const commands = ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'CREATE', 'DROP'];
-  
-  while (true) {
-    const query = await commandPrompt({
-      message: 'sql> ',
-      context: 'database',
-      autoCompletion: commands,
-      transformer: (value, answers, { isFinal }) => {
-        return isFinal ? `📊 ${value}` : value;
-      }
-    });
-    
-    if (query.toLowerCase() === 'exit') break;
-    console.log(`Executing SQL: ${query}`);
-  }
+ const commands = ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'CREATE', 'DROP'];
+
+ while (true) {
+  const query = await commandPrompt({
+   message: 'sql> ',
+   context: 'database',
+   autoCompletion: commands,
+   transformer: (value, answers, {isFinal}) => {
+    return isFinal ? `📊 ${value}` : value;
+   }
+  });
+
+  if (query.toLowerCase() === 'exit') break;
+  console.log(`Executing SQL: ${query}`);
+ }
 }
 
 async function systemShell() {
-  const commands = ['ls', 'cd', 'pwd', 'mkdir', 'rm', 'cp', 'mv'];
-  
-  while (true) {
-    const command = await commandPrompt({
-      message: '$ ',
-      context: 'system', // Different context = separate history
-      autoCompletion: commands
-    });
-    
-    if (command === 'exit') break;
-    console.log(`Executing: ${command}`);
-  }
+ const commands = ['ls', 'cd', 'pwd', 'mkdir', 'rm', 'cp', 'mv'];
+
+ while (true) {
+  const command = await commandPrompt({
+   message: '$ ',
+   context: 'system', // Different context = separate history
+   autoCompletion: commands
+  });
+
+  if (command === 'exit') break;
+  console.log(`Executing: ${command}`);
+ }
 }
 ```
 
@@ -292,12 +292,13 @@ console.log(answers.cmd);
 ```
 
 ### After (v1.x)
+
 ```javascript
-import commandPrompt from '@token-ring/inquirer-command-prompt';
+import commandPrompt from 'pkg/inquirer-command-prompt/index';
 
 const answer = await commandPrompt({
-  message: '>',
-  autoCompletion: ['foo', 'bar']
+ message: '>',
+ autoCompletion: ['foo', 'bar']
 });
 console.log(answer);
 ```

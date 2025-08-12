@@ -1,9 +1,9 @@
-import assert from "node:assert";
+import { describe, it, beforeEach, afterEach, expect, vi } from "vitest";
 import { dirname, resolve as pathResolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import fsExtra from "fs-extra";
 import sinon from "sinon";
-import FileBackedHistory from "../FileBackedHistory.js";
+import FileBackedHistory from "../FileBackedHistory.ts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -32,14 +32,11 @@ describe("FileBackedHistory", () => {
 		it("should use default configuration", () => {
 			const history = new FileBackedHistory();
 
-			assert.strictEqual(history.config.save, true);
-			assert.strictEqual(history.config.folder, ".");
-			assert.strictEqual(history.config.limit, 100);
-			assert.deepStrictEqual(history.config.blacklist, []);
-			assert.strictEqual(
-				history.config.fileName,
-				"inquirer-command-prompt-history.json",
-			);
+			expect(history.config.save).toBe(true);
+			expect(history.config.folder).toBe(".");
+			expect(history.config.limit).toBe(100);
+			expect(history.config.blacklist).toEqual([]);
+			expect(history.config.fileName).toBe("inquirer-command-prompt-history.json");
 		});
 
 		it("should accept custom configuration", () => {
@@ -51,11 +48,11 @@ describe("FileBackedHistory", () => {
 				fileName: "custom-history.json",
 			});
 
-			assert.strictEqual(history.config.save, false);
-			assert.strictEqual(history.config.folder, "/tmp");
-			assert.strictEqual(history.config.limit, 50);
-			assert.deepStrictEqual(history.config.blacklist, ["clear", "exit"]);
-			assert.strictEqual(history.config.fileName, "custom-history.json");
+			expect(history.config.save).toBe(false);
+			expect(history.config.folder).toBe("/tmp");
+			expect(history.config.limit).toBe(50);
+			expect(history.config.blacklist).toEqual(["clear", "exit"]);
+			expect(history.config.fileName).toBe("custom-history.json");
 		});
 
 		it("should update configuration with setConfig", () => {
@@ -72,10 +69,10 @@ describe("FileBackedHistory", () => {
 				fileName: "new-file.json",
 			});
 
-			assert.strictEqual(history.config.limit, 25);
-			assert.deepStrictEqual(history.config.blacklist, ["test"]);
-			assert.strictEqual(history.config.folder, "/new/path");
-			assert.strictEqual(history.config.fileName, "new-file.json");
+			expect(history.config.limit).toBe(25);
+			expect(history.config.blacklist).toEqual(["test"]);
+			expect(history.config.folder).toBe("/new/path");
+			expect(history.config.fileName).toBe("new-file.json");
 		});
 	});
 
@@ -90,8 +87,8 @@ describe("FileBackedHistory", () => {
 			history.add("command1");
 			history.add("command2");
 
-			assert.deepStrictEqual(history.history, ["command1", "command2"]);
-			assert.strictEqual(history.historyIndex, 2);
+			expect(history.history).toEqual(["command1", "command2"]);
+			expect(history.historyIndex).toBe(2);
 		});
 
 		it("should not add duplicate consecutive commands", () => {
@@ -106,7 +103,7 @@ describe("FileBackedHistory", () => {
 			history.add("command2");
 			history.add("command1"); // Not consecutive duplicate
 
-			assert.deepStrictEqual(history.history, [
+			expect(history.history).toEqual([
 				"command1",
 				"command2",
 				"command1",
@@ -126,8 +123,8 @@ describe("FileBackedHistory", () => {
 			history.add("cmd3");
 			history.add("cmd4"); // Should remove cmd1
 
-			assert.deepStrictEqual(history.history, ["cmd2", "cmd3", "cmd4"]);
-			assert.strictEqual(history.historyIndex, 3);
+			expect(history.history).toEqual(["cmd2", "cmd3", "cmd4"]);
+			expect(history.historyIndex).toBe(3);
 		});
 
 		it("should ignore blacklisted commands", () => {
@@ -143,7 +140,7 @@ describe("FileBackedHistory", () => {
 			history.add("command2");
 			history.add("exit"); // Should be ignored
 
-			assert.deepStrictEqual(history.history, ["command1", "command2"]);
+			expect(history.history).toEqual(["command1", "command2"]);
 		});
 	});
 
@@ -164,18 +161,18 @@ describe("FileBackedHistory", () => {
 		});
 
 		it("should navigate backwards through history", () => {
-			assert.strictEqual(history.getPrevious(), "cmd3");
-			assert.strictEqual(history.historyIndex, 2);
+			expect(history.getPrevious()).toBe("cmd3");
+			expect(history.historyIndex).toBe(2);
 
-			assert.strictEqual(history.getPrevious(), "cmd2");
-			assert.strictEqual(history.historyIndex, 1);
+			expect(history.getPrevious()).toBe("cmd2");
+			expect(history.historyIndex).toBe(1);
 
-			assert.strictEqual(history.getPrevious(), "cmd1");
-			assert.strictEqual(history.historyIndex, 0);
+			expect(history.getPrevious()).toBe("cmd1");
+			expect(history.historyIndex).toBe(0);
 
 			// Try to go beyond beginning
-			assert.strictEqual(history.getPrevious(), undefined);
-			assert.strictEqual(history.historyIndex, 0);
+			expect(history.getPrevious()).toBeUndefined();
+			expect(history.historyIndex).toBe(0);
 		});
 
 		it("should navigate forwards through history", () => {
@@ -185,19 +182,19 @@ describe("FileBackedHistory", () => {
 			history.getPrevious(); // cmd1, index: 0
 
 			// Now navigate forward
-			assert.strictEqual(history.getNext(), "cmd2");
-			assert.strictEqual(history.historyIndex, 1);
+			expect(history.getNext()).toBe("cmd2");
+			expect(history.historyIndex).toBe(1);
 
-			assert.strictEqual(history.getNext(), "cmd3");
-			assert.strictEqual(history.historyIndex, 2);
+			expect(history.getNext()).toBe("cmd3");
+			expect(history.historyIndex).toBe(2);
 
 			// Go to new line
-			assert.strictEqual(history.getNext(), "");
-			assert.strictEqual(history.historyIndex, 3);
+			expect(history.getNext()).toBe("");
+			expect(history.historyIndex).toBe(3);
 
 			// Try to go beyond end
-			assert.strictEqual(history.getNext(), undefined);
-			assert.strictEqual(history.historyIndex, 3);
+			expect(history.getNext()).toBeUndefined();
+			expect(history.historyIndex).toBe(3);
 		});
 
 		it("should handle navigation on empty history", () => {
@@ -207,9 +204,9 @@ describe("FileBackedHistory", () => {
 				save: false,
 			});
 
-			assert.strictEqual(emptyHistory.getPrevious(), undefined);
-			assert.strictEqual(emptyHistory.getNext(), undefined);
-			assert.strictEqual(emptyHistory.historyIndex, 0);
+			expect(emptyHistory.getPrevious()).toBeUndefined();
+			expect(emptyHistory.getNext()).toBeUndefined();
+			expect(emptyHistory.historyIndex).toBe(0);
 		});
 	});
 
@@ -227,11 +224,11 @@ describe("FileBackedHistory", () => {
 
 			const allCommands = history.getAll();
 
-			assert.deepStrictEqual(allCommands, ["cmd1", "cmd2", "cmd3"]);
+			expect(allCommands).toEqual(["cmd1", "cmd2", "cmd3"]);
 
 			// Verify it's a copy (modifying returned array shouldn't affect internal state)
 			allCommands.push("cmd4");
-			assert.deepStrictEqual(history.history, ["cmd1", "cmd2", "cmd3"]);
+			expect(history.history).toEqual(["cmd1", "cmd2", "cmd3"]);
 		});
 
 		it("should return empty array for empty history", () => {
@@ -242,7 +239,7 @@ describe("FileBackedHistory", () => {
 			});
 
 			const allCommands = history.getAll();
-			assert.deepStrictEqual(allCommands, []);
+			expect(allCommands).toEqual([]);
 		});
 	});
 
@@ -258,13 +255,10 @@ describe("FileBackedHistory", () => {
 			history.add("saved_command2");
 
 			// Verify file was created and contains correct data
-			assert.ok(
-				await fsExtra.pathExists(FULL_HISTORY_PATH),
-				"History file should exist",
-			);
+			expect(await fsExtra.pathExists(FULL_HISTORY_PATH)).toBe(true);
 
 			const fileContent = await fsExtra.readJson(FULL_HISTORY_PATH);
-			assert.deepStrictEqual(fileContent.history, [
+			expect(fileContent.history).toEqual([
 				"saved_command1",
 				"saved_command2",
 			]);
@@ -280,10 +274,7 @@ describe("FileBackedHistory", () => {
 			history.add("not_saved_command");
 
 			// Verify file was not created
-			assert.ok(
-				!(await fsExtra.pathExists(FULL_HISTORY_PATH)),
-				"History file should not exist",
-			);
+			expect(await fsExtra.pathExists(FULL_HISTORY_PATH)).toBe(false);
 		});
 
 		it("should load existing history from file", async () => {
@@ -298,11 +289,11 @@ describe("FileBackedHistory", () => {
 				save: true,
 			});
 
-			assert.deepStrictEqual(history.history, [
+			expect(history.history).toEqual([
 				"existing_cmd1",
 				"existing_cmd2",
 			]);
-			assert.strictEqual(history.historyIndex, 2);
+			expect(history.historyIndex).toBe(2);
 		});
 
 		it("should handle corrupted history file gracefully", async () => {
@@ -319,8 +310,8 @@ describe("FileBackedHistory", () => {
 			});
 
 			// Should start with empty history
-			assert.deepStrictEqual(history.history, []);
-			assert.strictEqual(history.historyIndex, 0);
+			expect(history.history).toEqual([]);
+			expect(history.historyIndex).toBe(0);
 
 			// Should have logged error
 			sinon.assert.calledWithMatch(
@@ -351,7 +342,7 @@ describe("FileBackedHistory", () => {
 			history.add("cmd3"); // Should remove cmd1 from memory and file
 
 			const fileContent = await fsExtra.readJson(FULL_HISTORY_PATH);
-			assert.deepStrictEqual(fileContent.history, ["cmd2", "cmd3"]);
+			expect(fileContent.history).toEqual(["cmd2", "cmd3"]);
 		});
 
 		it("should handle directory creation errors gracefully", () => {
@@ -416,7 +407,7 @@ describe("FileBackedHistory", () => {
 			history.history = ["cmd1", "cmd2", "cmd3", "cmd4"];
 
 			const limitedHistory = history._getLimitedHistory();
-			assert.deepStrictEqual(limitedHistory, ["cmd3", "cmd4"]);
+			expect(limitedHistory).toEqual(["cmd3", "cmd4"]);
 		});
 
 		it("should return full history when under limit", () => {
@@ -430,7 +421,7 @@ describe("FileBackedHistory", () => {
 			history.history = ["cmd1", "cmd2"];
 
 			const limitedHistory = history._getLimitedHistory();
-			assert.deepStrictEqual(limitedHistory, ["cmd1", "cmd2"]);
+			expect(limitedHistory).toEqual(["cmd1", "cmd2"]);
 		});
 
 		it("should return copy of history", () => {
@@ -446,7 +437,7 @@ describe("FileBackedHistory", () => {
 			limitedHistory.push("cmd3");
 
 			// Original should be unchanged
-			assert.deepStrictEqual(history.history, ["cmd1", "cmd2"]);
+			expect(history.history).toEqual(["cmd1", "cmd2"]);
 		});
 	});
 
@@ -462,22 +453,16 @@ describe("FileBackedHistory", () => {
 			history.add("manual_cmd2");
 
 			// File should not exist yet
-			assert.ok(
-				!(await fsExtra.pathExists(FULL_HISTORY_PATH)),
-				"File should not exist before manual save",
-			);
+			expect(await fsExtra.pathExists(FULL_HISTORY_PATH)).toBe(false);
 
 			// Manually save
 			history.save();
 
 			// Now file should exist
-			assert.ok(
-				await fsExtra.pathExists(FULL_HISTORY_PATH),
-				"File should exist after manual save",
-			);
+			expect(await fsExtra.pathExists(FULL_HISTORY_PATH)).toBe(true);
 
 			const fileContent = await fsExtra.readJson(FULL_HISTORY_PATH);
-			assert.deepStrictEqual(fileContent.history, [
+			expect(fileContent.history).toEqual([
 				"manual_cmd1",
 				"manual_cmd2",
 			]);
@@ -495,14 +480,14 @@ describe("FileBackedHistory", () => {
 			});
 
 			// Should start empty
-			assert.deepStrictEqual(history.history, []);
+			expect(history.history).toEqual([]);
 
 			// Manually load
 			history.load();
 
 			// Should now have loaded data
-			assert.deepStrictEqual(history.history, ["loaded_cmd1", "loaded_cmd2"]);
-			assert.strictEqual(history.historyIndex, 2);
+			expect(history.history).toEqual(["loaded_cmd1", "loaded_cmd2"]);
+			expect(history.historyIndex).toBe(2);
 		});
 	});
 });

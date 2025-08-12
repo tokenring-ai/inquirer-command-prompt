@@ -3,13 +3,13 @@
 	"version": "2.0.0",
 	"license": "MIT",
 	"scripts": {
-		"lint": "eslint -c .eslintrc '*.js' 'test/*.js'",
-		"test": "mocha test"
+		"lint": "eslint -c .eslintrc '*.ts' 'test/*.ts' 'examples/*.ts'",
+		"test": "vitest run"
 	},
 	"type": "module",
 	"description": "A command prompt with history and autocomplete built on @inquirer/core.",
-	"main": "index.js",
-	"repository": {
+	"main": "index.ts",
+ "repository": {
 		"type": "git",
 		"url": "git+https://github.com/Token-Ring/inquirer-command-prompt.git"
 	},
@@ -37,10 +37,14 @@
 	},
 	"devDependencies": {
 		"@inquirer/testing": "^2.1.0",
+		"@types/fs-extra": "^11.0.4",
+		"@types/node": "^20.10.5",
+		"@types/sinon": "^17.0.2",
 		"babel-eslint": "^10.1.0",
 		"eslint": "^6.8.0",
-		"mocha": "^10.2.0",
-		"sinon": "^7.5.0"
+		"sinon": "^7.5.0",
+		"typescript": "^5.3.3",
+		"vitest": "^2.1.9"
 	},
 	"packageManager": "npm@11.4.2+sha512.f90c1ec8b207b625d6edb6693aef23dacb39c38e4217fe8c46a973f119cab392ac0de23fe3f07e583188dae9fd9108b3845ad6f525b598742bd060ebad60bff3"
 }

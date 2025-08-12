@@ -32,13 +32,14 @@ console.log(answers.cmd);
 ```
 
 #### After (v1.x)
+
 ```javascript
-import commandPrompt from '@token-ring/inquirer-command-prompt';
+import commandPrompt from 'pkg/inquirer-command-prompt/index';
 
 const answer = await commandPrompt({
-  message: '>',
-  autoCompletion: ['foo', 'bar'],
-  context: 'myContext'
+ message: '>',
+ autoCompletion: ['foo', 'bar'],
+ context: 'myContext'
 });
 console.log(answer);
 ```
@@ -50,14 +51,16 @@ console.log(answer);
 ### 5. Configuration
 
 #### Global Configuration
+
 ```javascript
 // Old
 const inquirerCommandPrompt = require('inquirer-command-prompt');
-inquirerCommandPrompt.setConfig({ /* ... */ });
+inquirerCommandPrompt.setConfig({ /* ... */});
 
 // New
-import { setGlobalConfig } from '@token-ring/inquirer-command-prompt';
-setGlobalConfig({ /* ... */ });
+import {setGlobalConfig} from 'pkg/inquirer-command-prompt/index';
+
+setGlobalConfig({ /* ... */});
 ```
 
 #### History Configuration
@@ -131,7 +134,7 @@ setGlobalConfig({
    inquirer.registerPrompt('command', require('inquirer-command-prompt'));
    
    // New
-   import commandPrompt from '@token-ring/inquirer-command-prompt';
+   import commandPrompt from 'pkg/inquirer-command-prompt/index';
    ```
 
 3. **Update usage**
@@ -167,7 +170,7 @@ setGlobalConfig({
    inquirerCommandPrompt.setConfig({ /* ... */ });
    
    // New
-   import { setGlobalConfig } from '@token-ring/inquirer-command-prompt';
+   import { setGlobalConfig } from 'pkg/inquirer-command-prompt/index';
    setGlobalConfig({ /* ... */ });
    ```
 

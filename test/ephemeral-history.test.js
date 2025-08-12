@@ -1,5 +1,5 @@
-import assert from "node:assert";
-import EphemeralHistory from "../EphemeralHistory.js";
+import { describe, it, beforeEach, expect } from "vitest";
+import EphemeralHistory from "../EphemeralHistory.ts";
 
 describe("EphemeralHistory", () => {
 	let history;
@@ -9,8 +9,8 @@ describe("EphemeralHistory", () => {
 
 	describe("Configuration", () => {
 		it("should use default configuration", () => {
-			assert.strictEqual(history.config.limit, 100);
-			assert.deepStrictEqual(history.config.blacklist, []);
+			expect(history.config.limit).toBe(100);
+			expect(history.config.blacklist).toEqual([]);
 		});
 
 		it("should accept custom configuration", () => {
@@ -19,8 +19,8 @@ describe("EphemeralHistory", () => {
 				blacklist: ["clear", "exit"],
 			});
 
-			assert.strictEqual(customHistory.config.limit, 50);
-			assert.deepStrictEqual(customHistory.config.blacklist, ["clear", "exit"]);
+			expect(customHistory.config.limit).toBe(50);
+			expect(customHistory.config.blacklist).toEqual(["clear", "exit"]);
 		});
 	});
 
@@ -29,8 +29,8 @@ describe("EphemeralHistory", () => {
 			history.add("command1");
 			history.add("command2");
 
-			assert.deepStrictEqual(history.history, ["command1", "command2"]);
-			assert.strictEqual(history.historyIndex, 2);
+			expect(history.history).toEqual(["command1", "command2"]);
+			expect(history.historyIndex).toBe(2);
 		});
 
 		it("should not add duplicate consecutive commands", () => {
@@ -39,7 +39,7 @@ describe("EphemeralHistory", () => {
 			history.add("command2");
 			history.add("command1"); // Not consecutive duplicate
 
-			assert.deepStrictEqual(history.history, [
+			expect(history.history).toEqual([
 				"command1",
 				"command2",
 				"command1",
@@ -54,8 +54,8 @@ describe("EphemeralHistory", () => {
 			history.add("cmd3");
 			history.add("cmd4"); // Should remove cmd1
 
-			assert.deepStrictEqual(history.history, ["cmd2", "cmd3", "cmd4"]);
-			assert.strictEqual(history.historyIndex, 3);
+			expect(history.history).toEqual(["cmd2", "cmd3", "cmd4"]);
+			expect(history.historyIndex).toBe(3);
 		});
 
 		it("should ignore blacklisted commands", () => {
@@ -66,7 +66,7 @@ describe("EphemeralHistory", () => {
 			history.add("command2");
 			history.add("exit"); // Should be ignored
 
-			assert.deepStrictEqual(history.history, ["command1", "command2"]);
+			expect(history.history).toEqual(["command1", "command2"]);
 		});
 	});
 
@@ -79,18 +79,18 @@ describe("EphemeralHistory", () => {
 		});
 
 		it("should navigate backwards through history", () => {
-			assert.strictEqual(history.getPrevious(), "cmd3");
-			assert.strictEqual(history.historyIndex, 2);
+			expect(history.getPrevious()).toBe("cmd3");
+			expect(history.historyIndex).toBe(2);
 
-			assert.strictEqual(history.getPrevious(), "cmd2");
-			assert.strictEqual(history.historyIndex, 1);
+			expect(history.getPrevious()).toBe("cmd2");
+			expect(history.historyIndex).toBe(1);
 
-			assert.strictEqual(history.getPrevious(), "cmd1");
-			assert.strictEqual(history.historyIndex, 0);
+			expect(history.getPrevious()).toBe("cmd1");
+			expect(history.historyIndex).toBe(0);
 
 			// Try to go beyond beginning
-			assert.strictEqual(history.getPrevious(), undefined);
-			assert.strictEqual(history.historyIndex, 0);
+			expect(history.getPrevious()).toBeUndefined();
+			expect(history.historyIndex).toBe(0);
 		});
 
 		it("should navigate forwards through history", () => {
@@ -100,19 +100,19 @@ describe("EphemeralHistory", () => {
 			history.getPrevious(); // cmd1, index: 0
 
 			// Now navigate forward
-			assert.strictEqual(history.getNext(), "cmd2");
-			assert.strictEqual(history.historyIndex, 1);
+			expect(history.getNext()).toBe("cmd2");
+			expect(history.historyIndex).toBe(1);
 
-			assert.strictEqual(history.getNext(), "cmd3");
-			assert.strictEqual(history.historyIndex, 2);
+			expect(history.getNext()).toBe("cmd3");
+			expect(history.historyIndex).toBe(2);
 
 			// Go to new line
-			assert.strictEqual(history.getNext(), "");
-			assert.strictEqual(history.historyIndex, 3);
+			expect(history.getNext()).toBe("");
+			expect(history.historyIndex).toBe(3);
 
 			// Try to go beyond end
-			assert.strictEqual(history.getNext(), undefined);
-			assert.strictEqual(history.historyIndex, 3);
+			expect(history.getNext()).toBeUndefined();
+			expect(history.historyIndex).toBe(3);
 		});
 	});
 
@@ -126,11 +126,11 @@ describe("EphemeralHistory", () => {
 		it("should return copy of all commands", () => {
 			const allCommands = history.getAll();
 
-			assert.deepStrictEqual(allCommands, ["cmd1", "cmd2", "cmd3"]);
+			expect(allCommands).toEqual(["cmd1", "cmd2", "cmd3"]);
 
 			// Verify it's a copy (modifying returned array shouldn't affect internal state)
 			allCommands.push("cmd4");
-			assert.deepStrictEqual(history.history, ["cmd1", "cmd2", "cmd3"]);
+			expect(history.history).toEqual(["cmd1", "cmd2", "cmd3"]);
 		});
 	});
 
@@ -143,8 +143,8 @@ describe("EphemeralHistory", () => {
 		it("should clear specific context", () => {
 			history.clear();
 
-			assert.deepStrictEqual(history.history, []);
-			assert.strictEqual(history.historyIndex, 0);
+			expect(history.history).toEqual([]);
+			expect(history.historyIndex).toBe(0);
 		});
 
 		it("should handle clearing non-existent context", () => {
