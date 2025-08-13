@@ -1,7 +1,7 @@
 import assert from "node:assert";
-import { dirname, resolve as pathResolve } from "node:path";
-import { fileURLToPath } from "node:url";
-import { render } from "@inquirer/testing";
+import {dirname, resolve as pathResolve} from "node:path";
+import {fileURLToPath} from "node:url";
+import {render} from "@inquirer/testing";
 import fsExtra from "fs-extra";
 import sinon from "sinon";
 import EphemeralHistory from "../EphemeralHistory.js";

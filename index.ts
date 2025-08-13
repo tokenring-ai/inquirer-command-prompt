@@ -1,21 +1,22 @@
 import {
     createPrompt,
     isEnterKey,
+    KeypressEvent,
     makeTheme,
+    Status,
+    Theme,
     useKeypress,
     useMemo,
     usePrefix,
     useState,
-    Theme,
-    Status, KeypressEvent,
 } from "@inquirer/core";
 import chalk from "chalk";
 
 import EphemeralHistory from "./EphemeralHistory.js";
-const defaultHistory = new EphemeralHistory();
-
-import { formatIndex, formatList, short } from "./helpers.js";
+import {formatIndex, formatList, short} from "./helpers.js";
 import {InquirerReadline} from "@inquirer/type";
+
+const defaultHistory = new EphemeralHistory();
 
 /**
  * Result from auto-completion function

@@ -1,4 +1,4 @@
-import { describe, it, beforeEach, expect } from "vitest";
+import {beforeEach, describe, expect, it} from "vitest";
 import EphemeralHistory from "../EphemeralHistory.ts";
 
 describe("EphemeralHistory", () => {

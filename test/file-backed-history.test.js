@@ -1,6 +1,6 @@
-import { describe, it, beforeEach, afterEach, expect, vi } from "vitest";
-import { dirname, resolve as pathResolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import {afterEach, beforeEach, describe, expect, it} from "vitest";
+import {dirname, resolve as pathResolve} from "node:path";
+import {fileURLToPath} from "node:url";
 import fsExtra from "fs-extra";
 import sinon from "sinon";
 import FileBackedHistory from "../FileBackedHistory.ts";
