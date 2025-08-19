@@ -72,13 +72,13 @@ commandLoop();
 
 ```javascript
 const answer = await commandPrompt({
-  message: 'Enter command:', // The prompt message
-  context: 'myApp',         // Context for history/autocompletion
-  default: 'help',          // Default value
-  required: true,           // Whether input is required
-  validate: (input) => {    // Validation function
-    return input.length > 0 ? true : 'Input required';
-  }
+ message: 'Enter command:', // The prompt message
+ context: 'myApp',         // Context for history/autocompletion
+ default: 'help',          // Default value
+ required: true,           // Whether input is required
+ validate: (input) => {    // Validation function
+  return input.length > 0 ? true : 'Input required';
+ }
 });
 ```
 
@@ -86,14 +86,14 @@ const answer = await commandPrompt({
 
 ```javascript
 const answer = await commandPrompt({
-  message: '>',
-  history: {
-    save: true,                    // Save to file
-    folder: './my-history',        // History folder
-    fileName: 'commands.json',     // History filename
-    limit: 50,                     // Max entries
-    blacklist: ['password', 'secret'] // Excluded commands
-  }
+ message: '>',
+ history: {
+  save: true,                    // Save to file
+  folder: './my-history',        // History folder
+  fileName: 'commands.json',     // History filename
+  limit: 50,                     // Max entries
+  blacklist: ['password', 'secret'] // Excluded commands
+ }
 });
 ```
 
@@ -102,37 +102,37 @@ const answer = await commandPrompt({
 ```javascript
 // Static array
 const answer = await commandPrompt({
-  message: '>',
-  autoCompletion: ['start', 'stop', 'restart', 'status']
+ message: '>',
+ autoCompletion: ['start', 'stop', 'restart', 'status']
 });
 
 // Dynamic function
 const answer = await commandPrompt({
-  message: '>',
-  autoCompletion: (line) => {
-    return ['start', 'stop', 'restart'].filter(cmd => 
-      cmd.startsWith(line)
-    );
-  }
+ message: '>',
+ autoCompletion: (line) => {
+  return ['start', 'stop', 'restart'].filter(cmd =>
+   cmd.startsWith(line)
+  );
+ }
 });
 
 // Async function
 const answer = await commandPrompt({
-  message: '>',
-  autoCompletion: async (line) => {
-    const response = await fetch(`/api/commands?q=${line}`);
-    return response.json();
-  }
+ message: '>',
+ autoCompletion: async (line) => {
+  const response = await fetch(`/api/commands?q=${line}`);
+  return response.json();
+ }
 });
 
 // With filter option
 const answer = await commandPrompt({
-  message: '>',
-  autoCompletion: [
-    { filter: str => str.split(':')[0] }, // Remove hints after ':'
-    'edit 12: Love is in the air',
-    'edit 36: Like a virgin'
-  ]
+ message: '>',
+ autoCompletion: [
+  {filter: str => str.split(':')[0]}, // Remove hints after ':'
+  'edit 12: Love is in the air',
+  'edit 36: Like a virgin'
+ ]
 });
 ```
 
@@ -167,16 +167,21 @@ const answer = await commandPrompt({
 
 ```javascript
 const customHistoryHandler = {
-  init: (context) => { /* initialize */ },
-  add: (context, command) => { /* add command */ },
-  getPrevious: (context) => { /* get previous */ },
-  getNext: (context) => { /* get next */ },
-  getAll: (context) => { /* get all */ }
+ init: (context) => { /* initialize */
+ },
+ add: (context, command) => { /* add command */
+ },
+ getPrevious: (context) => { /* get previous */
+ },
+ getNext: (context) => { /* get next */
+ },
+ getAll: (context) => { /* get all */
+ }
 };
 
 const answer = await commandPrompt({
-  message: '>',
-  historyHandler: customHistoryHandler
+ message: '>',
+ historyHandler: customHistoryHandler
 });
 ```
 
@@ -278,6 +283,7 @@ async function systemShell() {
 The new version uses a functional API instead of the class-based Inquirer.js plugin approach:
 
 ### Before (v0.x)
+
 ```javascript
 const inquirer = require('inquirer');
 inquirer.registerPrompt('command', require('inquirer-command-prompt'));
@@ -306,11 +312,13 @@ console.log(answer);
 ## Testing
 
 Run the simple test:
+
 ```bash
 node test-simple.js
 ```
 
 Run the examples:
+
 ```bash
 node examples/autocompletion.js
 node examples/filecompletion.js

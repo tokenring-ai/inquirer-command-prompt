@@ -134,8 +134,6 @@ function autoCompleterFormatter(line: string, cmds: (string | any)[]): string[] 
 
 /**
  * Command prompt with history and auto-completion built on @inquirer/core
- * @param config - Configuration options
- * @returns Promise that resolves with the user's input
  */
 export default createPrompt<string, CommandPromptConfig>((config, done) => {
   const {

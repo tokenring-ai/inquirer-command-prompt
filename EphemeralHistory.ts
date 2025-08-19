@@ -24,7 +24,6 @@ class EphemeralHistory {
 
   /**
    * Create a new EphemeralHistory instance
-   * @param config - Configuration options
    */
   constructor(config: HistoryConfig = {}) {
     this.history = [];
@@ -40,7 +39,6 @@ class EphemeralHistory {
 
   /**
    * Update configuration settings
-   * @param config - New configuration options
    */
   setConfig(config: HistoryConfig): void {
     if (typeof config === "object") {
@@ -50,7 +48,6 @@ class EphemeralHistory {
 
   /**
    * Add a command to history
-   * @param value - The command to add
    */
   add(value: string): void {
     if (this.config.blacklist && this.config.blacklist.includes(value)) {
@@ -71,7 +68,6 @@ class EphemeralHistory {
 
   /**
    * Set the current line of input, for saving/restoring when navigating history
-   * @param line - The current line of input
    */
   setCurrent(line: string): void {
     this.currentLine = line;
@@ -79,7 +75,6 @@ class EphemeralHistory {
 
   /**
    * Get the previous command in history
-   * @returns The previous command or undefined if at beginning
    */
   getPrevious(): string | undefined {
     if (this.historyIndex > 0) {
@@ -91,7 +86,6 @@ class EphemeralHistory {
 
   /**
    * Get the next command in history
-   * @returns The next command or the saved current line
    */
   getNext(): string | undefined {
     if (this.historyIndex < this.history.length - 1) {
@@ -107,7 +101,6 @@ class EphemeralHistory {
 
   /**
    * Get all commands in history for a context
-   * @returns Array of all commands in history
    */
   getAll(): string[] {
     return [...this.history]; // Return a copy

@@ -2,21 +2,25 @@
 
 ## Overview
 
-This package has been completely rewritten to use the modern `@inquirer/core` framework instead of the legacy Inquirer.js plugin system. This provides better performance, modern JavaScript features, and improved maintainability.
+This package has been completely rewritten to use the modern `@inquirer/core` framework instead of the legacy
+Inquirer.js plugin system. This provides better performance, modern JavaScript features, and improved maintainability.
 
 ## Breaking Changes
 
 ### 1. Package Name
+
 - **Old**: `inquirer-command-prompt`
 - **New**: `@token-ring/inquirer-command-prompt`
 
 ### 2. API Style
+
 - **Old**: Class-based Inquirer.js plugin
 - **New**: Functional API with async/await
 
 ### 3. Import/Usage
 
 #### Before (v0.x)
+
 ```javascript
 const inquirer = require('inquirer');
 inquirer.registerPrompt('command', require('inquirer-command-prompt'));
@@ -45,6 +49,7 @@ console.log(answer);
 ```
 
 ### 4. Context Changes
+
 - **Old**: Numeric contexts (0, 1, 2, ...)
 - **New**: String contexts ('default', 'myApp', 'database', ...)
 
@@ -64,6 +69,7 @@ setGlobalConfig({ /* ... */});
 ```
 
 #### History Configuration
+
 ```javascript
 // Old
 inquirerCommandPrompt.setConfig({
@@ -100,21 +106,25 @@ setGlobalConfig({
 ## New Features
 
 ### 1. Modern JavaScript
+
 - Full ES modules support
 - Async/await throughout
 - Better error handling
 
 ### 2. Improved TypeScript Support
+
 - Comprehensive JSDoc types
 - Better IDE integration
 - Type-safe configuration
 
 ### 3. Enhanced API
+
 - Cleaner functional interface
 - Better async support
 - More flexible configuration
 
 ### 4. Better Performance
+
 - Built on modern `@inquirer/core`
 - Reduced dependencies
 - Optimized rendering
