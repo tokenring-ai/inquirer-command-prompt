@@ -113,7 +113,7 @@ interface ReadlineInterface {
  * Format auto-completion results
  * @param line - The current input line
  * @param cmds - Array of possible completions
- * @returns Formatted auto-completion result with matches as string[]
+ * @returns Formatted auto-completion result with matches
  */
 function autoCompleterFormatter(line: string, cmds: (string | any)[]): string[] {
   let max = 0;

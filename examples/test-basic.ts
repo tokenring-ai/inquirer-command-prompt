@@ -2,7 +2,7 @@
 
 import commandPrompt from "../index.js";
 
-console.log("🧪 Testing @token-ring/inquirer-command-prompt");
+console.log("🧪 Testing @tokenring-ai/inquirer-command-prompt");
 console.log("=".repeat(50));
 
 // Test 1: Basic functionality
@@ -40,6 +40,6 @@ console.log("\n🎉 All tests passed!");
 console.log("📦 Package is ready for use");
 console.log("\n📖 Usage:");
 console.log(
-  '  import commandPrompt from "@token-ring/inquirer-command-prompt";',
+  '  import commandPrompt from "@tokenring-ai/inquirer-command-prompt";',
 );
 console.log('  const answer = await commandPrompt({ message: ">" });');

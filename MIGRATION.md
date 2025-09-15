@@ -1,4 +1,4 @@
-# Migration Guide: inquirer-command-prompt v0.x → @token-ring/inquirer-command-prompt v1.x
+# Migration Guide: inquirer-command-prompt v0.x → @tokenring-ai/inquirer-command-prompt v1.x
 
 ## Overview
 
@@ -10,7 +10,7 @@ Inquirer.js plugin system. This provides better performance, modern JavaScript f
 ### 1. Package Name
 
 - **Old**: `inquirer-command-prompt`
-- **New**: `@token-ring/inquirer-command-prompt`
+- **New**: `@tokenring-ai/inquirer-command-prompt`
 
 ### 2. API Style
 
@@ -26,11 +26,11 @@ const inquirer = require('inquirer');
 inquirer.registerPrompt('command', require('inquirer-command-prompt'));
 
 const answers = await inquirer.prompt([{
-  type: 'command',
-  name: 'cmd',
-  message: '>',
-  autoCompletion: ['foo', 'bar'],
-  context: 0
+ type: 'command',
+ name: 'cmd',
+ message: '>',
+ autoCompletion: ['foo', 'bar'],
+ context: 0
 }]);
 console.log(answers.cmd);
 ```
@@ -134,7 +134,7 @@ setGlobalConfig({
 1. **Update package.json**
    ```bash
    npm uninstall inquirer-command-prompt
-   npm install @token-ring/inquirer-command-prompt
+   npm install @tokenring-ai/inquirer-command-prompt
    ```
 
 2. **Update imports**
