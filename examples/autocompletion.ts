@@ -1,4 +1,4 @@
-import commandPrompt from "../index.js";
+import commandPrompt from "../index.ts";
 
 async function runPrompt(): Promise<void> {
   const availableCommands: string[] = [

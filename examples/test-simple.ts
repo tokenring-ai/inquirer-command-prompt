@@ -1,4 +1,4 @@
-import commandPrompt from "../index.js";
+import commandPrompt from "../index.ts";
 
 console.log("Testing basic command prompt functionality...");
 

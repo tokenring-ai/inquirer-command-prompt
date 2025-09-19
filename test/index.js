@@ -4,8 +4,6 @@ import {fileURLToPath} from "node:url";
 import {render} from "@inquirer/testing";
 import fsExtra from "fs-extra";
 import sinon from "sinon";
-import EphemeralHistory from "../EphemeralHistory.js";
-import FileBackedHistory from "../FileBackedHistory.js";
 import commandPrompt from "../index.ts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

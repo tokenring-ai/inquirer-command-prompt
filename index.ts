@@ -4,7 +4,7 @@ import {
   KeypressEvent,
   makeTheme,
   Status,
-  Theme,
+  Theme, useEffect,
   useKeypress,
   useMemo,
   usePrefix,
@@ -13,34 +13,9 @@ import {
 import {InquirerReadline} from "@inquirer/type";
 import chalk from "chalk";
 
-import EphemeralHistory from "./EphemeralHistory.js";
 import {formatIndex, formatList, short} from "./helpers.js";
 
-const defaultHistory = new EphemeralHistory();
-
-/**
- * Result from auto-completion function
- */
-export interface AutoCompleterResult {
-  match?: string;
-  matches?: string[];
-}
-
-/**
- * History handler interface for managing command history
- */
-export interface HistoryHandler {
-  init: () => void;
-  add: (command: string) => void;
-  getPrevious: () => string | null;
-  getNext: () => string | null;
-  getAll: () => string[];
-  setCurrent?: (command: string) => void;
-  setConfig?: (config: any) => void;
-  config?: {
-    limit?: number;
-  };
-}
+const defaultHistory : string[] = [];
 
 /**
  * Configuration options for the command prompt
@@ -48,8 +23,8 @@ export interface HistoryHandler {
 export interface CommandPromptConfig {
   /** The prompt message */
   message: string;
-  /** Custom history handler */
-  historyHandler?: HistoryHandler;
+  /** The history object */
+  history?: string[];
   /** Auto-completion function or array */
   autoCompletion?: ((line: string) => Promise<string[]> | string[]) | string[];
   /** Transform the displayed value */
@@ -139,7 +114,7 @@ export default createPrompt<string, CommandPromptConfig>((config, done) => {
   const {
     theme: themeConfig,
     default: defaultValue,
-    historyHandler = defaultHistory,
+    history = defaultHistory,
     autoCompletion,
     transformer,
     validate,
@@ -159,6 +134,11 @@ export default createPrompt<string, CommandPromptConfig>((config, done) => {
     inactiveLines: [],
     displayContent: null,
   });
+
+  const [historyPosition,setHistoryPosition] = useState(history.length);
+  useEffect(() => {
+    setHistoryPosition(history.length);
+  }, [history]);
 
   const [multiLine, setMultiLine] = useState<boolean>(false);
 
@@ -275,7 +255,9 @@ export default createPrompt<string, CommandPromptConfig>((config, done) => {
         }
       }
       if (isValid === true) {
-        historyHandler.add(answer);
+        if (history == defaultHistory) {
+          history.push(answer);
+        }
         setStatus("done");
         done(answer);
       } else {
@@ -294,11 +276,10 @@ export default createPrompt<string, CommandPromptConfig>((config, done) => {
     }
 
     if (key.name === "up") {
-      if (historyHandler.setCurrent) {
-        historyHandler.setCurrent(rl.line);
-      }
-      const previousCommand = historyHandler.getPrevious();
-      if (previousCommand) {
+      if (historyPosition > 0 && history.length > 0) {
+        setHistoryPosition(historyPosition - 1);
+
+        const previousCommand = history[historyPosition-1] ?? "";
         setLines({
           activeLines: [previousCommand],
           inactiveLines: [],
@@ -307,11 +288,10 @@ export default createPrompt<string, CommandPromptConfig>((config, done) => {
         rl.cursor = previousCommand.length;
       }
     } else if (key.name === "down") {
-      if (historyHandler.setCurrent) {
-        historyHandler.setCurrent(rl.line);
-      }
-      const nextCommand = historyHandler.getNext();
-      if (nextCommand) {
+      if (historyPosition < history.length) {
+        setHistoryPosition(historyPosition + 1);
+
+        const nextCommand = history[historyPosition + 1] ?? "";
         setLines({
           activeLines: [nextCommand],
           inactiveLines: [],
@@ -326,7 +306,6 @@ export default createPrompt<string, CommandPromptConfig>((config, done) => {
 
       const trimmedValue = value.trim();
       // Handle tab completion
-      //let line = (value.length > 1 ? value.join('\n') : value[0] || '').replace(/^ +/, '').replace(/\t/, '').replace(/ +/g, ' ');
       const matches = (await autoCompleter(trimmedValue)) ?? [];
       if (matches.length === 0) {
         setLines({
@@ -364,16 +343,12 @@ export default createPrompt<string, CommandPromptConfig>((config, done) => {
       }
     } else if (key.name === "right" && key.shift) {
       // Display all history entries
-      const historyEntries = historyHandler.getAll();
-      const historyConfig = historyHandler.config || {};
-      const historyLimit =
-        historyConfig.limit !== undefined ? historyConfig.limit : 100;
       let historyDisplay = chalk.bold("History:");
-      if (historyEntries.length === 0) {
+      if (history.length === 0) {
         historyDisplay += "\n" + chalk.grey("  (No history)");
       } else {
-        for (let i = 0; i < historyEntries.length; i++) {
-          historyDisplay += `\n${chalk.grey(formatIndex(i, historyLimit))}  ${historyEntries[i]}`;
+        for (let i = 0; i < history.length; i++) {
+          historyDisplay += `\n${chalk.grey(formatIndex(i, history.length))}  ${history[i]}`;
         }
       }
 

@@ -19,22 +19,14 @@ This package plays a role in larger CLI tools by providing a robust, user-friend
 
 To use this package in your Node.js project:
 
-1. Ensure you have Node.js >= 18 installed.
+1. Ensure you have Node.js >= 20 or bun installed, which can use native TypeScript modules.
 2. Install the package via npm:
 
    ```bash
    npm install @tokenring-ai/inquirer-command-prompt
    ```
 
-3. For development or building:
-
-   ```bash
-   npm install
-   npm run lint  # Lint the code
-   npm test      # Run tests with Vitest
-   ```
-
-The package is written in TypeScript and uses ES modules (`"type": "module"`). No additional build step is required for usage, as it compiles to JS on import.
+The package is written in TypeScript and uses ES modules (`"type": "module"`). Your project must be configured to compile native TypeScript modules.
 
 Dependencies like `@inquirer/core` and `chalk` are installed automatically. For file-backed history, `fs-extra` is used for file operations.
 
@@ -44,8 +36,6 @@ The package is organized as a standard npm module under `pkg/inquirer-command-pr
 
 - **index.ts**: Main entry point. Exports the default `createPrompt` function for the command prompt, along with interfaces like `CommandPromptConfig`, `HistoryHandler`, and `AutoCompleterResult`. Handles core logic for keypress events, state management, and rendering.
 - **helpers.ts**: Utility functions for formatting auto-completion lists, shortening suggestions, ellipsizing long text, and removing ANSI colors. Includes `formatList`, `short`, `ellipsize`, `decolorize`, `formatIndex`, and `setSpaces`.
-- **FileBackedHistory.ts**: Implementation of persistent history storage using JSON files. Saves/loads commands to a configurable file (default: `inquirer-command-prompt-history.json`).
-- **EphemeralHistory.ts**: In-memory history handler for session-only storage. Lightweight alternative to file-backed history.
 - **package.json**: Package metadata, scripts (lint, test), and dependencies.
 - **examples/**: Sample usage files like `test-simple.ts`, `test-basic.ts`, `filecompletion.ts`, and `autocompletion.ts` demonstrating basic prompts, history, and completion.
 - **test/**: Unit and integration tests using Vitest, covering history handlers and prompt behavior.
@@ -71,34 +61,6 @@ The main component is a prompt factory created via `@inquirer/core`'s `createPro
   const answer = await commandPrompt({ message: 'Enter a command:' })();
   console.log(answer); // e.g., "npm install"
   ```
-
-### HistoryHandler Interface
-
-Defines the contract for history management.
-
-- **Description**: Abstracts history operations. Implementations like `EphemeralHistory` and `FileBackedHistory` provide navigation and storage.
-- **Key Methods**:
-  - `init(): void` - Initialize (e.g., load from file).
-  - `add(command: string): void` - Add a command (avoids duplicates, respects limit/blacklist).
-  - `getPrevious(): string | null` - Return previous command.
-  - `getNext(): string | null` - Return next command or current line.
-  - `getAll(): string[]` - Return all history entries.
-  - `setCurrent?(command: string): void` - Set current input for navigation.
-  - `setConfig?(config: any): void` - Update config.
-  - `config?`: Object with `limit?: number` (default 100).
-- **Interactions**: Integrated into the prompt's keypress handler for Up/Down navigation. Shift+Right displays full history.
-
-### FileBackedHistory Class
-
-- **Description**: Persists history to a JSON file for cross-session recall. Handles file I/O with error recovery (e.g., backups on corruption).
-- **Key Methods**: Extends `HistoryHandler`. `save()` and `load()` manage file operations. Constructor accepts `HistoryConfig` (e.g., `folder: './history'`, `limit: 50`, `blacklist: ['secret']`).
-- **Interactions**: Used when `historyHandler` is provided in config. Saves on `add()`, loads on init.
-
-### EphemeralHistory Class
-
-- **Description**: In-memory only; no persistence. Suitable for one-off sessions.
-- **Key Methods**: Similar to `FileBackedHistory`, but without file ops. Includes `clear(): void` to reset.
-- **Interactions**: Default handler if none provided.
 
 ### Helpers
 
@@ -197,9 +159,6 @@ Environment variables: None explicitly used; relies on Node.js process.stdout fo
 
 - **default export**: `createPrompt<CommandPromptConfig>(config: CommandPromptConfig) => Promise<string>` - Creates and runs the prompt.
 - **AutoCompleterResult**: `{ match?: string; matches?: string[] }` - Completion result type.
-- **HistoryHandler**: Interface as described.
-- **FileBackedHistory(config?: HistoryConfig)**: Persistent history class.
-- **EphemeralHistory(config?: HistoryConfig)**: In-memory history class.
 - Helpers: `formatList(...)`, `short(...)`, etc., as utility exports.
 
 All public APIs are typed for TypeScript.

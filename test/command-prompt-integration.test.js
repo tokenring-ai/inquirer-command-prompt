@@ -2,8 +2,6 @@ import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
 import {dirname, resolve as pathResolve} from "node:path";
 import {fileURLToPath} from "node:url";
 import fsExtra from "fs-extra";
-import EphemeralHistory from "../EphemeralHistory.ts";
-import FileBackedHistory from "../FileBackedHistory.ts";
 import commandPrompt from "../index.ts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -155,103 +153,6 @@ describe("Command Prompt Integration Tests", () => {
   });
  });
 
- describe("History Integration", () => {
-  const TEST_HISTORY_DIR = pathResolve(__dirname, "integration_history_test");
-  const HISTORY_FILE = "integration-test-history.json";
-
-  beforeEach(async () => {
-   if (await fsExtra.pathExists(TEST_HISTORY_DIR)) {
-    await fsExtra.remove(TEST_HISTORY_DIR);
-   }
-   await fsExtra.ensureDir(TEST_HISTORY_DIR);
-  });
-
-  afterEach(async () => {
-   if (await fsExtra.pathExists(TEST_HISTORY_DIR)) {
-    await fsExtra.remove(TEST_HISTORY_DIR);
-   }
-  });
-
-  it("should work with EphemeralHistory", () => {
-   const historyHandler = new EphemeralHistory({limit: 10});
-
-   const config = {
-    message: "Enter command:",
-    context: "ephemeral_integration_test",
-    historyHandler: historyHandler,
-   };
-
-   // Test that the history handler is properly configured
-   expect(config.historyHandler).toBe(historyHandler);
-   expect(historyHandler.config.limit).toBe(10);
-
-   historyHandler.add("test_command_1");
-   historyHandler.add("test_command_2");
-
-   expect(historyHandler.getAll()).toEqual([
-    "test_command_1",
-    "test_command_2",
-   ]);
-   expect(historyHandler.getPrevious()).toBe("test_command_2");
-   expect(historyHandler.getPrevious()).toBe("test_command_1");
-  });
-
-  it("should work with FileBackedHistory", async () => {
-   const historyHandler = new FileBackedHistory({
-    folder: TEST_HISTORY_DIR,
-    fileName: HISTORY_FILE,
-    save: true,
-    limit: 5,
-   });
-
-   const config = {
-    message: "Enter command:",
-    context: "file_integration_test",
-    historyHandler: historyHandler,
-   };
-
-   // Test that the history handler is properly configured
-   expect(config.historyHandler).toBe(historyHandler);
-   expect(historyHandler.config.save).toBe(true);
-   expect(historyHandler.config.limit).toBe(5);
-
-   // Test history functionality
-   historyHandler.add("file_cmd_1");
-   historyHandler.add("file_cmd_2");
-
-   expect(historyHandler.getAll()).toEqual([
-    "file_cmd_1",
-    "file_cmd_2",
-   ]);
-
-   // Verify file was created
-   const historyFilePath = pathResolve(TEST_HISTORY_DIR, HISTORY_FILE);
-   expect(await fsExtra.pathExists(historyFilePath)).toBe(true);
-
-   const fileContent = await fsExtra.readJson(historyFilePath);
-   expect(fileContent.history).toEqual(["file_cmd_1", "file_cmd_2"]);
-  });
-
-  it("should handle history configuration object", () => {
-   const historyConfig = {
-    folder: TEST_HISTORY_DIR,
-    fileName: HISTORY_FILE,
-    save: true,
-    limit: 20,
-    blacklist: ["clear", "exit"],
-   };
-
-   const config = {
-    message: "Enter command:",
-    context: "history_config_integration_test",
-    history: historyConfig,
-   };
-
-   expect(config.history).toEqual(historyConfig);
-   expect(config.history.limit).toBe(20);
-   expect(config.history.blacklist).toEqual(["clear", "exit"]);
-  });
- });
 
  describe("Event Handlers Integration", () => {
   it("should handle onBeforeKeyPress configuration", () => {
@@ -355,7 +256,6 @@ describe("Command Prompt Integration Tests", () => {
 
  describe("Advanced Configuration Integration", () => {
   it("should handle complex configuration with all options", () => {
-   const historyHandler = new EphemeralHistory({limit: 50});
    const commands = ["build", "test", "deploy", "rollback"];
 
    const config = {
@@ -363,7 +263,6 @@ describe("Command Prompt Integration Tests", () => {
     context: "complex_integration_test",
     default: "help",
     required: true,
-    historyHandler: historyHandler,
     autoCompletion: commands,
     autocompletePrompt: "📋 Available commands:",
     validate: (input) =>
@@ -391,7 +290,6 @@ describe("Command Prompt Integration Tests", () => {
    expect(config.context).toBe("complex_integration_test");
    expect(config.default).toBe("help");
    expect(config.required).toBe(true);
-   expect(config.historyHandler).toBe(historyHandler);
    expect(config.autoCompletion).toEqual(commands);
    expect(config.autocompletePrompt).toBe("📋 Available commands:");
    expect(typeof config.validate).toBe("function");

@@ -1,4 +1,4 @@
-import commandPrompt from "../index.js";
+import commandPrompt from "../index.ts";
 
 async function runPrompt(): Promise<void> {
   async function fileCompletion(): Promise<string[]> {

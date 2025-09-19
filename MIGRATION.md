@@ -43,7 +43,7 @@ import commandPrompt from 'pkg/inquirer-command-prompt/index';
 const answer = await commandPrompt({
  message: '>',
  autoCompletion: ['foo', 'bar'],
- context: 'myContext'
+ history: ['hello', 'world'],
 });
 console.log(answer);
 ```
@@ -51,22 +51,13 @@ console.log(answer);
 ### 4. Context Changes
 
 - **Old**: Numeric contexts (0, 1, 2, ...)
-- **New**: String contexts ('default', 'myApp', 'database', ...)
+- **New**: Not needed anymore
 
 ### 5. Configuration
 
 #### Global Configuration
 
-```javascript
-// Old
-const inquirerCommandPrompt = require('inquirer-command-prompt');
-inquirerCommandPrompt.setConfig({ /* ... */});
-
-// New
-import {setGlobalConfig} from 'pkg/inquirer-command-prompt/index';
-
-setGlobalConfig({ /* ... */});
-```
+Global configuration has been removed.
 
 #### History Configuration
 
@@ -81,25 +72,10 @@ inquirerCommandPrompt.setConfig({
   }
 });
 
-// New - per prompt
+// New - history is passed in from an outside service
 const answer = await commandPrompt({
   message: '>',
-  history: {
-    save: true,
-    folder: historyFolder,
-    limit: 10,
-    blacklist: ['exit']
-  }
-});
-
-// New - global
-setGlobalConfig({
-  history: {
-    save: true,
-    folder: historyFolder,
-    limit: 10,
-    blacklist: ['exit']
-  }
+  history: ['hello', 'world'],
 });
 ```
 
@@ -128,73 +104,3 @@ setGlobalConfig({
 - Built on modern `@inquirer/core`
 - Reduced dependencies
 - Optimized rendering
-
-## Migration Steps
-
-1. **Update package.json**
-   ```bash
-   npm uninstall inquirer-command-prompt
-   npm install @tokenring-ai/inquirer-command-prompt
-   ```
-
-2. **Update imports**
-   ```javascript
-   // Old
-   const inquirer = require('inquirer');
-   inquirer.registerPrompt('command', require('inquirer-command-prompt'));
-   
-   // New
-   import commandPrompt from 'pkg/inquirer-command-prompt/index';
-   ```
-
-3. **Update usage**
-   ```javascript
-   // Old
-   const answers = await inquirer.prompt([{
-     type: 'command',
-     name: 'cmd',
-     message: '>',
-     // ... other options
-   }]);
-   const result = answers.cmd;
-   
-   // New
-   const result = await commandPrompt({
-     message: '>',
-     // ... other options
-   });
-   ```
-
-4. **Update contexts**
-   ```javascript
-   // Old
-   context: 0
-   
-   // New
-   context: 'myApp'
-   ```
-
-5. **Update global configuration**
-   ```javascript
-   // Old
-   inquirerCommandPrompt.setConfig({ /* ... */ });
-   
-   // New
-   import { setGlobalConfig } from 'pkg/inquirer-command-prompt/index';
-   setGlobalConfig({ /* ... */ });
-   ```
-
-## Compatibility Notes
-
-- All core features are preserved
-- History functionality works the same way
-- Auto-completion API is unchanged
-- Key bindings remain the same
-- Configuration options are mostly compatible
-
-## Need Help?
-
-- Check the [README.md](./README.md) for full documentation
-- See [examples/](./examples/) for working examples
-- Run `node test-basic.js` to verify your installation
-- Open an issue on GitHub for specific migration questions
