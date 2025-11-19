@@ -1,7 +1,6 @@
-import {afterEach, beforeEach, describe, expect, it, vi} from "vitest";
-import {dirname, resolve as pathResolve} from "node:path";
+import {describe, expect, it, vi} from "vitest";
+import {dirname} from "node:path";
 import {fileURLToPath} from "node:url";
-import fsExtra from "fs-extra";
 import commandPrompt from "../index.ts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

@@ -4,7 +4,8 @@ import {
   KeypressEvent,
   makeTheme,
   Status,
-  Theme, useEffect,
+  Theme,
+  useEffect,
   useKeypress,
   useMemo,
   usePrefix,
@@ -15,7 +16,7 @@ import chalk from "chalk";
 
 import {formatIndex, formatList, short} from "./helpers.js";
 
-const defaultHistory : string[] = [];
+const defaultHistory: string[] = [];
 
 /**
  * Configuration options for the command prompt
@@ -135,7 +136,7 @@ export default createPrompt<string, CommandPromptConfig>((config, done) => {
     displayContent: null,
   });
 
-  const [historyPosition,setHistoryPosition] = useState(history.length);
+  const [historyPosition, setHistoryPosition] = useState(history.length);
   useEffect(() => {
     setHistoryPosition(history.length);
   }, [history]);
@@ -279,7 +280,7 @@ export default createPrompt<string, CommandPromptConfig>((config, done) => {
       if (historyPosition > 0 && history.length > 0) {
         setHistoryPosition(historyPosition - 1);
 
-        const previousCommand = history[historyPosition-1] ?? "";
+        const previousCommand = history[historyPosition - 1] ?? "";
         setLines({
           activeLines: [previousCommand],
           inactiveLines: [],

@@ -2,18 +2,26 @@
 
 ## Overview
 
-The `@tokenring-ai/inquirer-command-prompt` package provides an interactive command prompt for Node.js CLI applications, built on top of `@inquirer/core`. It enhances user input handling with features like command history navigation (using up/down arrow keys), auto-completion (via Tab key), multi-line input support, input validation, and customizable history persistence. This package is ideal for building interactive command-line interfaces where users need to enter commands, with intelligent suggestions and recall of previous inputs.
+The `@tokenring-ai/inquirer-command-prompt` package provides an interactive command prompt for Node.js CLI applications,
+built on top of `@inquirer/core`. It enhances user input handling with features like command history navigation (using
+up/down arrow keys), auto-completion (via Tab key), multi-line input support, input validation, and customizable history
+persistence. This package is ideal for building interactive command-line interfaces where users need to enter commands,
+with intelligent suggestions and recall of previous inputs.
 
-The prompt integrates seamlessly with the Inquirer ecosystem, leveraging its readline-based input system while adding specialized functionality for command-like interactions. It supports both ephemeral (in-memory) and file-backed history, allowing commands to be saved across sessions.
+The prompt integrates seamlessly with the Inquirer ecosystem, leveraging its readline-based input system while adding
+specialized functionality for command-like interactions. It supports both ephemeral (in-memory) and file-backed history,
+allowing commands to be saved across sessions.
 
 Key features:
+
 - **History Management**: Navigate previous commands with arrow keys; supports persistent storage.
 - **Auto-Completion**: Tab-triggered suggestions from a static array or dynamic async function.
 - **Multi-Line Mode**: Toggle with Meta+M (Cmd+M on macOS) for entering commands across multiple lines.
 - **Validation and Transformation**: Custom validators and display transformers.
 - **Theming and Styling**: Customizable colors and formatting via themes.
 
-This package plays a role in larger CLI tools by providing a robust, user-friendly way to capture complex command inputs.
+This package plays a role in larger CLI tools by providing a robust, user-friendly way to capture complex command
+inputs.
 
 ## Installation/Setup
 
@@ -26,18 +34,24 @@ To use this package in your Node.js project:
    npm install @tokenring-ai/inquirer-command-prompt
    ```
 
-The package is written in TypeScript and uses ES modules (`"type": "module"`). Your project must be configured to compile native TypeScript modules.
+The package is written in TypeScript and uses ES modules (`"type": "module"`). Your project must be configured to
+compile native TypeScript modules.
 
-Dependencies like `@inquirer/core` and `chalk` are installed automatically. For file-backed history, `fs-extra` is used for file operations.
+Dependencies like `@inquirer/core` and `chalk` are installed automatically. For file-backed history, `fs-extra` is used
+for file operations.
 
 ## Package Structure
 
 The package is organized as a standard npm module under `pkg/inquirer-command-prompt/`:
 
-- **index.ts**: Main entry point. Exports the default `createPrompt` function for the command prompt, along with interfaces like `CommandPromptConfig`, `HistoryHandler`, and `AutoCompleterResult`. Handles core logic for keypress events, state management, and rendering.
-- **helpers.ts**: Utility functions for formatting auto-completion lists, shortening suggestions, ellipsizing long text, and removing ANSI colors. Includes `formatList`, `short`, `ellipsize`, `decolorize`, `formatIndex`, and `setSpaces`.
+- **index.ts**: Main entry point. Exports the default `createPrompt` function for the command prompt, along with
+  interfaces like `CommandPromptConfig`, `HistoryHandler`, and `AutoCompleterResult`. Handles core logic for keypress
+  events, state management, and rendering.
+- **helpers.ts**: Utility functions for formatting auto-completion lists, shortening suggestions, ellipsizing long text,
+  and removing ANSI colors. Includes `formatList`, `short`, `ellipsize`, `decolorize`, `formatIndex`, and `setSpaces`.
 - **package.json**: Package metadata, scripts (lint, test), and dependencies.
-- **examples/**: Sample usage files like `test-simple.ts`, `test-basic.ts`, `filecompletion.ts`, and `autocompletion.ts` demonstrating basic prompts, history, and completion.
+- **examples/**: Sample usage files like `test-simple.ts`, `test-basic.ts`, `filecompletion.ts`, and `autocompletion.ts`
+  demonstrating basic prompts, history, and completion.
 - **test/**: Unit and integration tests using Vitest, covering history handlers and prompt behavior.
 - **MIGRATION.md**: Notes on version changes (if applicable).
 - Other files: `package-lock.json`, `_config.yml` (likely for GitHub Pages or docs).
@@ -48,13 +62,18 @@ Directories are auto-created as needed for history files.
 
 ### Command Prompt (Default Export)
 
-The main component is a prompt factory created via `@inquirer/core`'s `createPrompt`. It manages the interactive session, handling input, key events, and output rendering.
+The main component is a prompt factory created via `@inquirer/core`'s `createPrompt`. It manages the interactive
+session, handling input, key events, and output rendering.
 
-- **Description**: Renders a prompt with a message, captures user input (single or multi-line), processes keypresses for history/auto-completion, validates input, and resolves with the final command string.
+- **Description**: Renders a prompt with a message, captures user input (single or multi-line), processes keypresses for
+  history/auto-completion, validates input, and resolves with the final command string.
 - **Key Methods/Properties**:
-  - No direct methods on the prompt instance; it's a function that returns a prompt creator. Usage: `const prompt = commandPrompt(config); await prompt();`
-  - Internal hooks: Uses `useState`, `useKeypress`, `usePrefix`, `useMemo` from `@inquirer/core` for state and event management.
-  - Interactions: Keypress handler processes Enter (submit), Up/Down (history), Tab (completion), Meta+M (multi-line toggle). On submit, adds to history, runs validation, and calls `done(value)`.
+ - No direct methods on the prompt instance; it's a function that returns a prompt creator. Usage:
+   `const prompt = commandPrompt(config); await prompt();`
+ - Internal hooks: Uses `useState`, `useKeypress`, `usePrefix`, `useMemo` from `@inquirer/core` for state and event
+   management.
+ - Interactions: Keypress handler processes Enter (submit), Up/Down (history), Tab (completion), Meta+M (multi-line
+   toggle). On submit, adds to history, runs validation, and calls `done(value)`.
 - **Example**:
   ```typescript
   import commandPrompt from '@tokenring-ai/inquirer-command-prompt';
@@ -66,7 +85,8 @@ The main component is a prompt factory created via `@inquirer/core`'s `createPro
 
 Utility functions for display formatting, used in auto-completion rendering.
 
-- `formatList(elems: string[], maxSize?: number, ellipsize?: boolean, ellipsis?: string): string` - Columns matched elements.
+- `formatList(elems: string[], maxSize?: number, ellipsize?: boolean, ellipsis?: string): string` - Columns matched
+  elements.
 - `short(line: string, matches: string[]): string[]` - Removes common prefix from suggestions.
 - `ellipsize(str: string, len: number, ellipsis?: string): string` - Truncates with ellipsis.
 - Others as listed in helpers.ts.
@@ -157,7 +177,8 @@ Environment variables: None explicitly used; relies on Node.js process.stdout fo
 
 ## API Reference
 
-- **default export**: `createPrompt<CommandPromptConfig>(config: CommandPromptConfig) => Promise<string>` - Creates and runs the prompt.
+- **default export**: `createPrompt<CommandPromptConfig>(config: CommandPromptConfig) => Promise<string>` - Creates and
+  runs the prompt.
 - **AutoCompleterResult**: `{ match?: string; matches?: string[] }` - Completion result type.
 - Helpers: `formatList(...)`, `short(...)`, etc., as utility exports.
 
@@ -177,7 +198,9 @@ Dev dependencies include Vitest for testing, ESLint, TypeScript.
 
 - **Testing**: Run `npm test` for Vitest suite covering history, completion, and integration.
 - **Building**: No build script; TypeScript compiles on-the-fly.
-- **Known Limitations**: Auto-completion is prefix-based; multi-line mode is basic (no advanced editing). File history uses synchronous I/O—suitable for CLIs but may block in high-load scenarios. Binary files and .gitignore are skipped in searches (per tool constraints, but irrelevant here).
+- **Known Limitations**: Auto-completion is prefix-based; multi-line mode is basic (no advanced editing). File history
+  uses synchronous I/O—suitable for CLIs but may block in high-load scenarios. Binary files and .gitignore are skipped
+  in searches (per tool constraints, but irrelevant here).
 - **License**: MIT.
 - Contributions: Fork the repo, add tests, and submit PRs. Lint with ESLint.
 - Inspired by Inquirer.js issue #306.
