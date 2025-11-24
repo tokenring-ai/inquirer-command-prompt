@@ -44,7 +44,7 @@
   "eslint": "^9.39.1",
   "sinon": "^21.0.0",
   "typescript": "^5.9.3",
-  "vitest": "^4.0.12"
+  "vitest": "^4.0.13"
  },
  "packageManager": "npm@11.6.3"
 }
