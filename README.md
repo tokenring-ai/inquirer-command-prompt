@@ -1,208 +1,399 @@
-# Inquirer Command Prompt Package Documentation
+# @tokenring-ai/inquirer-command-prompt
+
+A powerful command prompt with history navigation and auto-completion, built on `@inquirer/core` for modern Node.js CLI applications.
 
 ## Overview
 
-The `@tokenring-ai/inquirer-command-prompt` package provides an interactive command prompt for Node.js CLI applications,
-built on top of `@inquirer/core`. It enhances user input handling with features like command history navigation (using
-up/down arrow keys), auto-completion (via Tab key), multi-line input support, input validation, and customizable history
-persistence. This package is ideal for building interactive command-line interfaces where users need to enter commands,
-with intelligent suggestions and recall of previous inputs.
+The `@tokenring-ai/inquirer-command-prompt` package provides an interactive command-line interface that enhances user input handling with intelligent features:
 
-The prompt integrates seamlessly with the Inquirer ecosystem, leveraging its readline-based input system while adding
-specialized functionality for command-like interactions. It supports both ephemeral (in-memory) and file-backed history,
-allowing commands to be saved across sessions.
+- **History Navigation**: Navigate previous commands using up/down arrow keys
+- **Auto-completion**: Tab-triggered suggestions from static arrays or dynamic async functions
+- **Multi-line Support**: Toggle with Meta+M for entering commands across multiple lines
+- **Input Validation**: Custom validation functions with error feedback
+- **Theming**: Customizable colors and formatting via Inquirer themes
+- **Transformers**: Custom display transformations while preserving original input
 
-Key features:
+This package is designed for CLI tools, REPL environments, and interactive applications where users need to enter commands with intelligent suggestions and recall of previous inputs.
 
-- **History Management**: Navigate previous commands with arrow keys; supports persistent storage.
-- **Auto-Completion**: Tab-triggered suggestions from a static array or dynamic async function.
-- **Multi-Line Mode**: Toggle with Meta+M (Cmd+M on macOS) for entering commands across multiple lines.
-- **Validation and Transformation**: Custom validators and display transformers.
-- **Theming and Styling**: Customizable colors and formatting via themes.
+## Installation
 
-This package plays a role in larger CLI tools by providing a robust, user-friendly way to capture complex command
-inputs.
+```bash
+npm install @tokenring-ai/inquirer-command-prompt
+```
 
-## Installation/Setup
+**Requirements:**
+- Node.js >= 20 or bun (for native TypeScript module support)
+- The package uses ES modules (`"type": "module"`)
 
-To use this package in your Node.js project:
-
-1. Ensure you have Node.js >= 20 or bun installed, which can use native TypeScript modules.
-2. Install the package via npm:
-
-   ```bash
-   npm install @tokenring-ai/inquirer-command-prompt
-   ```
-
-The package is written in TypeScript and uses ES modules (`"type": "module"`). Your project must be configured to
-compile native TypeScript modules.
-
-Dependencies like `@inquirer/core` and `chalk` are installed automatically. For file-backed history, `fs-extra` is used
-for file operations.
-
-## Package Structure
-
-The package is organized as a standard npm module under `pkg/inquirer-command-prompt/`:
-
-- **index.ts**: Main entry point. Exports the default `createPrompt` function for the command prompt, along with
-  interfaces like `CommandPromptConfig`, `HistoryHandler`, and `AutoCompleterResult`. Handles core logic for keypress
-  events, state management, and rendering.
-- **helpers.ts**: Utility functions for formatting auto-completion lists, shortening suggestions, ellipsizing long text,
-  and removing ANSI colors. Includes `formatList`, `short`, `ellipsize`, `decolorize`, `formatIndex`, and `setSpaces`.
-- **package.json**: Package metadata, scripts (lint, test), and dependencies.
-- **examples/**: Sample usage files like `test-simple.ts`, `test-basic.ts`, `filecompletion.ts`, and `autocompletion.ts`
-  demonstrating basic prompts, history, and completion.
-- **test/**: Unit and integration tests using Vitest, covering history handlers and prompt behavior.
-- **MIGRATION.md**: Notes on version changes (if applicable).
-- Other files: `package-lock.json`, `_config.yml` (likely for GitHub Pages or docs).
-
-Directories are auto-created as needed for history files.
-
-## Core Components
-
-### Command Prompt (Default Export)
-
-The main component is a prompt factory created via `@inquirer/core`'s `createPrompt`. It manages the interactive
-session, handling input, key events, and output rendering.
-
-- **Description**: Renders a prompt with a message, captures user input (single or multi-line), processes keypresses for
-  history/auto-completion, validates input, and resolves with the final command string.
-- **Key Methods/Properties**:
- - No direct methods on the prompt instance; it's a function that returns a prompt creator. Usage:
-   `const prompt = commandPrompt(config); await prompt();`
- - Internal hooks: Uses `useState`, `useKeypress`, `usePrefix`, `useMemo` from `@inquirer/core` for state and event
-   management.
- - Interactions: Keypress handler processes Enter (submit), Up/Down (history), Tab (completion), Meta+M (multi-line
-   toggle). On submit, adds to history, runs validation, and calls `done(value)`.
-- **Example**:
-  ```typescript
-  import commandPrompt from '@tokenring-ai/inquirer-command-prompt';
-  const answer = await commandPrompt({ message: 'Enter a command:' })();
-  console.log(answer); // e.g., "npm install"
-  ```
-
-### Helpers
-
-Utility functions for display formatting, used in auto-completion rendering.
-
-- `formatList(elems: string[], maxSize?: number, ellipsize?: boolean, ellipsis?: string): string` - Columns matched
-  elements.
-- `short(line: string, matches: string[]): string[]` - Removes common prefix from suggestions.
-- `ellipsize(str: string, len: number, ellipsis?: string): string` - Truncates with ellipsis.
-- Others as listed in helpers.ts.
-
-## Usage Examples
-
-### Basic Single-Line Prompt
+## Quick Start
 
 ```typescript
 import commandPrompt from '@tokenring-ai/inquirer-command-prompt';
 
-async function main() {
-  const answer = await commandPrompt({
-    message: 'What command would you like to run?',
-    default: 'npm start'
-  })();
-  console.log('You entered:', answer);
-}
-
-main();
-```
-
-### With Auto-Completion and File History
-
-```typescript
-import commandPrompt from '@tokenring-ai/inquirer-command-prompt';
-import FileBackedHistory from '@tokenring-ai/inquirer-command-prompt/FileBackedHistory';
-
-const history = new FileBackedHistory({ folder: './.history', limit: 20 });
-
-const commands = ['npm install', 'npm run build', 'git commit', 'yarn add lodash'];
-
-async function main() {
-  const answer = await commandPrompt({
-    message: 'Enter a dev command:',
-    historyHandler: history,
-    autoCompletion: commands,
-    validate: (value) => value.trim() ? true : 'Command required!',
-    short: true  // Shorten suggestions
-  })();
-  console.log('Command:', answer);
-  history.add(answer);  // Explicit add if needed
-}
-
-main();
-```
-
-### Multi-Line Input
-
-Toggle multi-line with Meta+M, submit with Meta+Enter.
-
-```typescript
-// Same setup as above, but add:
+// Basic usage
 const answer = await commandPrompt({
-  message: 'Enter multi-line notes:',
-  // Multi-line enabled via keypress (Meta+M)
-})();
+  message: 'Enter command:',
+});
+console.log(`You entered: ${answer}`);
+
+// With auto-completion
+const answer = await commandPrompt({
+  message: '>',
+  autoCompletion: ['npm install', 'npm run build', 'git commit', 'ls -la'],
+});
 ```
 
-For more examples, see the `examples/` directory.
+## Features
 
-## Configuration Options
+### History Management
 
-The `CommandPromptConfig` interface defines all options:
+Navigate through command history using arrow keys:
 
-- `message: string` (required) - Prompt text.
-- `historyHandler?: HistoryHandler` - Custom history (defaults to `EphemeralHistory`).
-- `autoCompletion?: ((line: string) => Promise<string[]>) | string[]` - Static array or async completer function.
-- `transformer?: (value: string) => string` - Transform displayed input.
-- `validate?: (value: string) => Promise<boolean | string> | boolean | string` - Input validation.
-- `required?: boolean` - Enforce non-empty input.
-- `onBeforeKeyPress?: (key: any, rl: any) => void` - Pre-keypress hook.
-- `onBeforeRewrite?: (value: string) => void` - Before line rewrite.
-- `onClose?: (value: string) => void` - Post-submit callback.
-- `autocompletePrompt?: string` - Custom completion header (default: "Available commands:").
-- `short?: boolean | ((value: string, matches: string[]) => string[])` - Shorten suggestions.
-- `maxSize?: number` - Max column width for lists (default: 32).
-- `ellipsize?: boolean` - Truncate long suggestions.
-- `ellipsis?: string` - Ellipsis char (default: "…").
-- `noColorOnAnswered?: boolean` - Disable color on submit.
-- `colorOnAnswered?: string` - Custom submit color.
-- `theme?: Partial<Theme>` - Inquirer theme overrides.
-- `default?: string` - Initial/default value.
+- **Up Arrow**: Navigate to previous commands
+- **Down Arrow**: Navigate to forward commands
+- **Shift+Right**: Display full history with indexed entries
 
-For history configs, see `HistoryConfig` in respective classes (e.g., `limit`, `blacklist`, `folder` for file-backed).
+```typescript
+const answer = await commandPrompt({
+  message: '>',
+  history: ['npm install', 'git add .', 'git commit'], // Pre-populated history
+});
+```
 
-Environment variables: None explicitly used; relies on Node.js process.stdout for terminal width.
+### Auto-completion
+
+Intelligent command suggestions triggered by Tab key:
+
+```typescript
+// Static array completion
+const answer = await commandPrompt({
+  message: '>',
+  autoCompletion: ['start', 'stop', 'restart', 'status', 'help'],
+});
+
+// Dynamic function completion
+const answer = await commandPrompt({
+  message: '>',
+  autoCompletion: async (line) => {
+    const commands = await fetchCommandsFromAPI();
+    return commands.filter(cmd => cmd.startsWith(line));
+  },
+});
+
+// Customized completion display
+const answer = await commandPrompt({
+  message: '>',
+  autoCompletion: ['long-command-name-1', 'long-command-name-2'],
+  short: true, // Remove common prefix
+  maxSize: 40, // Column width
+  ellipsize: true, // Truncate long entries
+  autocompletePrompt: 'Available commands:',
+});
+```
+
+### Multi-line Input
+
+Toggle multi-line mode for complex commands:
+
+```typescript
+const answer = await commandPrompt({
+  message: 'Enter multi-line command:',
+  // Press Meta+M (Cmd+M on macOS) to enable multi-line mode
+  // Press Meta+Enter to submit, Enter for new lines
+});
+```
+
+### Validation and Transformation
+
+```typescript
+const answer = await commandPrompt({
+  message: 'Enter command:',
+  validate: (input) => {
+    if (!input.trim()) return 'Command cannot be empty';
+    if (input.includes('rm -rf /')) return 'Dangerous command not allowed';
+    return true;
+  },
+  transformer: (input) => input.toUpperCase(), // Display transformation only
+  required: true,
+});
+```
+
+### Custom Theming
+
+```typescript
+const answer = await commandPrompt({
+  message: '>',
+  theme: {
+    style: {
+      message: (text) => `🚀 ${text}`,
+      error: (text) => `❌ ${text}`,
+      answer: (text) => `✅ ${text}`,
+    },
+  },
+});
+```
 
 ## API Reference
 
-- **default export**: `createPrompt<CommandPromptConfig>(config: CommandPromptConfig) => Promise<string>` - Creates and
-  runs the prompt.
-- **AutoCompleterResult**: `{ match?: string; matches?: string[] }` - Completion result type.
-- Helpers: `formatList(...)`, `short(...)`, etc., as utility exports.
+### CommandPromptConfig
 
-All public APIs are typed for TypeScript.
+```typescript
+interface CommandPromptConfig {
+  /** The prompt message (required) */
+  message: string;
+  
+  /** Array of previous commands for history navigation */
+  history?: string[];
+  
+  /** Auto-completion function or array of suggestions */
+  autoCompletion?: ((line: string) => Promise<string[]> | string[]) | string[];
+  
+  /** Transform the displayed value (original input remains unchanged) */
+  transformer?: (value: string) => string;
+  
+  /** Validate the input */
+  validate?: (value: string) => Promise<boolean | string> | boolean | string;
+  
+  /** Whether input is required */
+  required?: boolean;
+  
+  /** Called before each keypress */
+  onBeforeKeyPress?: (key: any, rl: any) => void;
+  
+  /** Called before rewriting the line */
+  onBeforeRewrite?: (value: string) => void;
+  
+  /** Called when prompt closes */
+  onClose?: (value: string) => void;
+  
+  /** Custom autocomplete prompt message */
+  autocompletePrompt?: string;
+  
+  /** Whether to shorten autocomplete suggestions */
+  short?: boolean | ((value: string, matches: string[]) => string[]);
+  
+  /** Maximum size for formatting columns */
+  maxSize?: number;
+  
+  /** Whether to ellipsize long text */
+  ellipsize?: boolean;
+  
+  /** Custom ellipsis character */
+  ellipsis?: string;
+  
+  /** Disable color on answered */
+  noColorOnAnswered?: boolean;
+  
+  /** Color to use on answered */
+  colorOnAnswered?: string;
+  
+  /** Theme configuration */
+  theme?: Partial<Theme>;
+  
+  /** Default value */
+  default?: string;
+}
+```
+
+### Helper Functions
+
+The package exports utility functions for formatting:
+
+```typescript
+import { formatList, short, ellipsize, formatIndex } from '@tokenring-ai/inquirer-command-prompt';
+
+// Format list into columns
+const formatted = formatList(['item1', 'item2', 'item3'], 30, true);
+
+// Shorten suggestions by removing common prefix
+const shortened = short('git ', ['git add', 'git commit', 'git push']);
+
+// Ellipsize long text
+const truncated = ellipsize('very-long-command-name', 20, '...');
+
+// Format index with proper padding
+const index = formatIndex(5, 100); // "  5"
+```
+
+## Examples
+
+### Basic CLI Tool
+
+```typescript
+import commandPrompt from '@tokenring-ai/inquirer-command-prompt';
+
+async function cli() {
+  console.log('🔧 Interactive CLI Tool');
+  
+  while (true) {
+    try {
+      const command = await commandPrompt({
+        message: '$ ',
+        history: [], // Could be loaded from file
+        autoCompletion: ['help', 'exit', 'status', 'config'],
+        validate: (cmd) => {
+          if (cmd === 'exit') return true;
+          if (!cmd.trim()) return 'Empty command';
+          return true;
+        },
+      });
+
+      if (command === 'exit') break;
+      
+      // Execute command
+      console.log(`Executing: ${command}`);
+      // ... your command logic here
+    } catch (error) {
+      console.log('Interrupted by user');
+      break;
+    }
+  }
+}
+
+cli();
+```
+
+### File System Navigator
+
+```typescript
+import commandPrompt from '@tokenring-ai/inquirer-command-prompt';
+import { promises as fs } from 'fs';
+
+async function fileNavigator() {
+  const commands = [
+    'ls', 'cd', 'pwd', 'cat', 'mkdir', 'rm', 'cp', 'mv',
+    'find', 'grep', 'chmod', 'chown', 'tar', 'zip'
+  ];
+
+  const answer = await commandPrompt({
+    message: 'fs> ',
+    autoCompletion: commands,
+    short: (line, matches) => {
+      // Custom shortening for file commands
+      return matches.map(cmd => cmd.replace(line, ''));
+    },
+    transformer: (input) => input.bold,
+  });
+
+  console.log(`Navigating with: ${answer}`);
+}
+
+fileNavigator();
+```
+
+### Development REPL
+
+```typescript
+import commandPrompt from '@tokenring-ai/inquirer-command-prompt';
+
+const devCommands = [
+  'build', 'test', 'lint', 'format', 'deploy', 'rollback',
+  'npm run dev', 'npm run build', 'npm test'
+];
+
+async function devREPL() {
+  const history = [];
+  
+  while (true) {
+    const command = await commandPrompt({
+      message: 'dev> ',
+      history,
+      autoCompletion: devCommands,
+      autocompletePrompt: '🛠️ Available commands:',
+      transformer: (input) => input.cyan,
+    });
+
+    history.push(command);
+    
+    if (command === 'exit') break;
+    
+    // Execute development command
+    console.log(`🚀 Executing: ${command}`);
+    // ... your dev logic here
+  }
+}
+
+devREPL();
+```
+
+## Key Bindings
+
+| Key | Action |
+|-----|--------|
+| **Enter** | Submit command |
+| **Up Arrow** | Navigate to previous command |
+| **Down Arrow** | Navigate to next command |
+| **Tab** | Trigger auto-completion |
+| **Shift+Right** | Display full history |
+| **Meta+M** | Toggle multi-line mode |
+| **Meta+Enter** | Submit in multi-line mode |
+| **Ctrl+C** | Cancel prompt |
 
 ## Dependencies
 
-- `@inquirer/core@^10.1.15` - Core prompt engine.
-- `@inquirer/type@^3.0.8` - Readline extensions.
-- `chalk@^5.5.0` - Terminal coloring.
-- `fs-extra@^11.3.1` - File system operations for history.
-- `lodash@^4.17.21` - Utility library (used in tests or internals).
+- `@inquirer/core@^11.0.1` - Core prompt engine
+- `@inquirer/type@^4.0.1` - Readline extensions
+- `chalk@^5.6.2` - Terminal coloring
+- `fs-extra@^11.3.2` - File system operations
+- `lodash@^4.17.21` - Utility functions
 
-Dev dependencies include Vitest for testing, ESLint, TypeScript.
+## Development
 
-## Contributing/Notes
+### Testing
 
-- **Testing**: Run `npm test` for Vitest suite covering history, completion, and integration.
-- **Building**: No build script; TypeScript compiles on-the-fly.
-- **Known Limitations**: Auto-completion is prefix-based; multi-line mode is basic (no advanced editing). File history
-  uses synchronous I/O—suitable for CLIs but may block in high-load scenarios. Binary files and .gitignore are skipped
-  in searches (per tool constraints, but irrelevant here).
-- **License**: MIT.
-- Contributions: Fork the repo, add tests, and submit PRs. Lint with ESLint.
-- Inspired by Inquirer.js issue #306.
+```bash
+npm test
+```
 
-For issues, see the GitHub repository.
+### Linting
+
+```bash
+npm run lint
+```
+
+### Building
+
+The package uses TypeScript with native ES modules. No build step is required - TypeScript is compiled on-the-fly by Node.js.
+
+## Migration from v0.x
+
+This package was completely rewritten for v1.x. If you're migrating from the old `inquirer-command-prompt`:
+
+### Before (v0.x)
+```javascript
+const inquirer = require('inquirer');
+inquirer.registerPrompt('command', require('inquirer-command-prompt'));
+
+const answers = await inquirer.prompt([{
+  type: 'command',
+  name: 'cmd',
+  message: '>',
+  autoCompletion: ['foo', 'bar'],
+}]);
+```
+
+### After (v1.x)
+```typescript
+import commandPrompt from '@tokenring-ai/inquirer-command-prompt';
+
+const answer = await commandPrompt({
+  message: '>',
+  autoCompletion: ['foo', 'bar'],
+});
+```
+
+## License
+
+MIT License - see LICENSE file for details.
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Add tests for new functionality
+4. Ensure all tests pass
+5. Submit a pull request
+
+## Support
+
+For issues and questions, please visit the [GitHub repository](https://github.com/tokenring-ai/inquirer-command-prompt/issues).
